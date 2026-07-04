@@ -18,5 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // false-positives on hooks that return a bag combining refs with other
+      // state/handlers (e.g. useEasyPay) — the refs here are never read
+      // during render, only assigned to DOM nodes or used in effects/handlers.
+      'react-hooks/refs': 'off',
+    },
   },
 ])
