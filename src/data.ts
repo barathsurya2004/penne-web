@@ -45,7 +45,7 @@ export const initialState: EasyPayState = {
   noteValue: '',
   amount: '',
   payee: null,
-  gpayPhase: 'loading',
+  showConfirm: false,
   selectedBudgetId: null,
   showAddBalance: false,
   addAmount: '',

@@ -41,16 +41,40 @@ export function Scanner(V: EasyPayVals) {
           </svg>
         </div>
       </div>
-      <div style={css('position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);width:236px;height:236px;z-index:15')}>
-        <div style={css('position:absolute;inset:0;overflow:hidden;border-radius:24px')}>
-          <div style={css('position:absolute;left:6%;right:6%;height:2px;background:linear-gradient(90deg,transparent,#7FC19B,transparent);box-shadow:0 0 14px 2px #7FC19B;animation:ep-scanline 2.4s ease-in-out infinite')} />
-        </div>
-        <span style={css(`position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid ${V.scanError ? '#E27878' : '#fff'};border-left:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:16px 0 0 0;transition:border-color .2s`)} />
-        <span style={css(`position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid ${V.scanError ? '#E27878' : '#fff'};border-right:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 16px 0 0;transition:border-color .2s`)} />
-        <span style={css(`position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid ${V.scanError ? '#E27878' : '#fff'};border-left:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 0 0 16px;transition:border-color .2s`)} />
-        <span style={css(`position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid ${V.scanError ? '#E27878' : '#fff'};border-right:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 0 16px 0;transition:border-color .2s`)} />
-      </div>
-      <div style={css(`position:absolute;top:calc(34% + 140px);left:0;right:0;text-align:center;color:${V.scanError ? '#E27878' : 'rgba(255,255,255,.7)'};font-size:12.5px;z-index:15;animation:ep-pulse 1.6s infinite`)}>
+      {(() => {
+        const cornerColor = V.scanSuccess ? '#7FC19B' : V.scanError ? '#E27878' : '#fff';
+        const reticleAnim = V.scanSuccess ? 'ep-pop .45s ease both' : V.scanError ? 'ep-shake .4s ease both' : 'none';
+        return (
+          <div
+            key={V.scanTick}
+            style={css(`position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);width:236px;height:236px;z-index:15;animation:${reticleAnim}`)}
+          >
+            <div style={css('position:absolute;inset:0;overflow:hidden;border-radius:24px')}>
+              {!V.scanSuccess && (
+                <div style={css('position:absolute;left:6%;right:6%;height:2px;background:linear-gradient(90deg,transparent,#7FC19B,transparent);box-shadow:0 0 14px 2px #7FC19B;animation:ep-scanline 2.4s ease-in-out infinite')} />
+              )}
+            </div>
+            <span style={css(`position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid ${cornerColor};border-left:3px solid ${cornerColor};border-radius:16px 0 0 0;transition:border-color .2s`)} />
+            <span style={css(`position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid ${cornerColor};border-right:3px solid ${cornerColor};border-radius:0 16px 0 0;transition:border-color .2s`)} />
+            <span style={css(`position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid ${cornerColor};border-left:3px solid ${cornerColor};border-radius:0 0 0 16px;transition:border-color .2s`)} />
+            <span style={css(`position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid ${cornerColor};border-right:3px solid ${cornerColor};border-radius:0 0 16px 0;transition:border-color .2s`)} />
+            {V.scanSuccess && (
+              <div style={css('position:absolute;inset:0;display:flex;align-items:center;justify-content:center')}>
+                <div style={css('width:64px;height:64px;border-radius:50%;background:#7FC19B;display:flex;align-items:center;justify-content:center;animation:ep-pop .4s ease both')}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+      <div
+        style={css(
+          `position:absolute;top:calc(34% + 140px);left:0;right:0;text-align:center;color:${V.scanSuccess ? '#7FC19B' : V.scanError ? '#E27878' : 'rgba(255,255,255,.7)'};font-size:12.5px;z-index:15;animation:${V.scanSuccess ? 'none' : 'ep-pulse 1.6s infinite'};font-weight:${V.scanSuccess ? 600 : 400}`,
+        )}
+      >
         {V.scanHint}
       </div>
 

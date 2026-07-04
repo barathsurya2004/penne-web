@@ -8,7 +8,6 @@ import { Home } from './screens/Home';
 import { Scanner } from './screens/Scanner';
 import { ManualUpi } from './screens/ManualUpi';
 import { Amount } from './screens/Amount';
-import { GpayHandoff } from './screens/GpayHandoff';
 import { Confirm } from './screens/Confirm';
 import { Receipt } from './screens/Receipt';
 import { History } from './screens/History';
@@ -32,8 +31,6 @@ function App() {
       {V.screenScan && <Scanner {...V} />}
       {V.screenUpi && <ManualUpi {...V} />}
       {V.screenAmount && <Amount {...V} />}
-      {V.screenGpay && <GpayHandoff {...V} />}
-      {V.screenConfirm && <Confirm {...V} />}
       {V.screenReceipt && <Receipt {...V} />}
       {V.screenHistory && <History {...V} />}
       {V.screenBudgets && <Budgets {...V} />}
@@ -42,6 +39,7 @@ function App() {
       <BudgetPicker {...V} />
       <AddBalanceSheet {...V} />
       <CreateBudgetSheet {...V} />
+      <Confirm {...V} />
       <TabBar {...V} />
     </div>
   );

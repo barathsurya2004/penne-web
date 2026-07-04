@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import jsQR from 'jsqr';
 import { debugUser, initialState, onboardData } from '../data';
-import { GpayLogo, GpayLogo2, QrArt } from '../lib/icons';
+import { GpayLogo, QrArt } from '../lib/icons';
 import { budgetIcon, icon, onboardArts } from '../lib/glyphs';
 import { parseUpiQr } from '../lib/upiQr';
 import { buildUpiPayLink, openUpiApp } from '../lib/upiPay';
@@ -130,10 +130,17 @@ export function useEasyPay() {
   const stateRef = useRef(state);
   stateRef.current = state;
   const [scanError, setScanError] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
+  const [scanTick, setScanTick] = useState(0);
   const scanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function go(screen: Screen) {
     setState({ screen });
+  }
+
+  function resetScanFeedback() {
+    setScanError(false);
+    setScanSuccess(false);
   }
 
   useEffect(() => {
@@ -197,6 +204,7 @@ export function useEasyPay() {
 
     function flagInvalid() {
       setScanError(true);
+      setScanTick((t) => t + 1);
       if (scanErrorTimerRef.current) clearTimeout(scanErrorTimerRef.current);
       scanErrorTimerRef.current = setTimeout(() => setScanError(false), 1600);
     }
@@ -231,7 +239,9 @@ export function useEasyPay() {
             const parsed = parseUpiQr(text);
             if (parsed) {
               stopped = true;
-              onScanned(parsed);
+              setScanSuccess(true);
+              setScanTick((t) => t + 1);
+              setTimeout(() => onScanned(parsed), 450);
               return;
             }
             flagInvalid();
@@ -330,17 +340,16 @@ export function useEasyPay() {
       budgetId: stateRef.current.selectedBudgetId,
     };
     pendingTxnRef.current = txn;
-    setState((s) => ({ txns: [txn, ...s.txns], balance: s.balance - amt, screen: 'gpay', gpayPhase: 'loading' }));
+    // note the transaction immediately and jump straight to the receipt, with the
+    // confirm sheet overlaid on top asking to verify the external app actually went through
+    setState((s) => ({ txns: [txn, ...s.txns], balance: s.balance - amt, screen: 'receipt', showConfirm: true }));
     openUpiApp(buildUpiPayLink(p, amt, stateRef.current.noteValue));
-    setTimeout(() => {
-      if (stateRef.current.screen === 'gpay') setState({ gpayPhase: 'done' });
-    }, 2600);
   }
 
   function confirmYes() {
     setState((s) => ({
       txns: s.txns.map((t) => (t.id === pendingTxnRef.current?.id ? { ...t, pending: false } : t)),
-      screen: 'receipt',
+      showConfirm: false,
     }));
   }
 
@@ -350,6 +359,7 @@ export function useEasyPay() {
       txns: s.txns.filter((t) => t.id !== pendingTxnRef.current?.id),
       balance: s.balance + amt,
       screen: 'home',
+      showConfirm: false,
     }));
     pendingTxnRef.current = null;
   }
@@ -433,6 +443,7 @@ export function useEasyPay() {
     go('home');
   }
   function openScan() {
+    resetScanFeedback();
     setState({ screen: 'scan', cameraFallback: false });
   }
   function switchToManual() {
@@ -631,8 +642,6 @@ export function useEasyPay() {
     screenScan: s.screen === 'scan',
     screenUpi: s.screen === 'upi',
     screenAmount: s.screen === 'amount',
-    screenGpay: s.screen === 'gpay',
-    screenConfirm: s.screen === 'confirm',
     screenReceipt: s.screen === 'receipt',
     screenHistory: s.screen === 'history',
     screenBudgets: s.screen === 'budgets',
@@ -767,12 +776,19 @@ export function useEasyPay() {
     qrArt: <QrArt />,
     scanHint: s.cameraFallback
       ? 'Point at a UPI QR code'
-      : scanError
-        ? "That's not a UPI QR code — try another"
-        : 'Looking for a QR code…',
+      : scanSuccess
+        ? 'QR verified'
+        : scanError
+          ? "That's not a UPI QR code — try another"
+          : 'Looking for a QR code…',
     scanError,
+    scanSuccess,
+    scanTick,
     switchToManual,
-    backToScan: () => setState({ screen: 'scan', cameraFallback: false }),
+    backToScan: () => {
+      resetScanFeedback();
+      setState({ screen: 'scan', cameraFallback: false });
+    },
 
     // upi entry
     upiValue: s.upiValue,
@@ -797,17 +813,15 @@ export function useEasyPay() {
     noteValue: s.noteValue,
     onNoteInput: (e: ChangeEvent<HTMLInputElement>) => setState({ noteValue: e.target.value }),
     keys,
-    backFromAmount: () => setState({ screen: 'scan', cameraFallback: false }),
+    backFromAmount: () => {
+      resetScanFeedback();
+      setState({ screen: 'scan', cameraFallback: false });
+    },
     onSlideDown,
     gpayLogo: <GpayLogo />,
 
-    // gpay
-    gpayLoading: s.gpayPhase === 'loading',
-    gpayDone: s.gpayPhase === 'done',
-    gpayLogo2: <GpayLogo2 />,
-    returnFromGpay: () => go('confirm'),
-
-    // confirm
+    // confirm (overlaid on the receipt right after the slide-to-pay handoff)
+    showConfirm: s.showConfirm,
     confirmYes,
     confirmNo,
 

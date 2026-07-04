@@ -2,6 +2,7 @@ import { css } from '../lib/style';
 import type { EasyPayVals } from '../hooks/useEasyPay';
 
 export function Confirm(V: EasyPayVals) {
+  if (!V.showConfirm) return null;
   return (
     <div style={css('position:absolute;inset:0;background:rgba(20,20,20,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;z-index:70')}>
       <div style={css('width:100%;background:#F5F1E8;border-radius:28px 28px 0 0;padding:28px 24px calc(30px + var(--safe-b));animation:ep-rise .35s ease both')}>

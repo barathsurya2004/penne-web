@@ -7,8 +7,6 @@ export type Screen =
   | 'scan'
   | 'upi'
   | 'amount'
-  | 'gpay'
-  | 'confirm'
   | 'receipt'
   | 'history'
   | 'budgets'
@@ -74,7 +72,7 @@ export interface EasyPayState {
   noteValue: string;
   amount: string;
   payee: Payee | null;
-  gpayPhase: 'loading' | 'done';
+  showConfirm: boolean;
   selectedBudgetId: string | null;
   showAddBalance: boolean;
   addAmount: string;
