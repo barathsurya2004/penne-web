@@ -38,7 +38,11 @@ export function Budgets(V: EasyPayVals) {
       <div style={css("padding:22px 22px 6px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;color:#8A8577")}>Categories</div>
       <div style={css('padding:0 18px;display:flex;flex-direction:column;gap:10px')}>
         {V.budgetsList.map((b) => (
-          <div key={b.id} style={css('background:#fff;border:1px solid #EBE6D9;border-radius:18px;padding:15px 16px')}>
+          <div
+            key={b.id}
+            onClick={() => V.openEditBudget(b.id)}
+            style={css('background:#fff;border:1px solid #EBE6D9;border-radius:18px;padding:15px 16px;cursor:pointer')}
+          >
             <div style={css('display:flex;align-items:center;gap:12px')}>
               <span style={css('width:42px;height:42px;border-radius:13px;background:#F4F1E8;border:1px solid #EBE6D9;display:flex;align-items:center;justify-content:center;flex-shrink:0')}>
                 {b.icon}
@@ -50,6 +54,17 @@ export function Budgets(V: EasyPayVals) {
                 </div>
               </div>
               <div style={css(`font-size:12px;font-weight:500;color:${b.remainColor};text-align:right;white-space:nowrap`)}>{b.remaining}</div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  V.deleteBudget(b.id);
+                }}
+                style={css('width:28px;height:28px;border-radius:9px;background:none;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:2px')}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0-1 13a1 1 0 01-1 1H8a1 1 0 01-1-1L6 7h12z" stroke="#C6BEA9" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
             <div style={css('margin-top:13px;height:7px;border-radius:99px;background:#EFEADD;overflow:hidden')}>
               <div style={css(`height:100%;width:${b.pctW};background:${b.barColor};border-radius:99px;transition:width .4s`)} />

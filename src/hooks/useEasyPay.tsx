@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import jsQR from 'jsqr';
+import QRCode from 'qrcode';
 import { debugUser, initialState, onboardData } from '../data';
 import { GpayLogo, QrArt } from '../lib/icons';
 import { budgetIcon, icon, onboardArts } from '../lib/glyphs';
 import { parseUpiQr } from '../lib/upiQr';
 import { buildUpiPayLink, openUpiApp } from '../lib/upiPay';
-import { clearPersistedAuth, loadPersistedAuth, savePersistedAuth } from '../lib/authStorage';
-import type { Budget, BudgetIconKey, EasyPayState, Payee, Screen, Txn } from '../types';
+import { decodeQrFromImageFile } from '../lib/qrImage';
+import { clearPersistedApp, loadPersistedApp, savePersistedApp } from '../lib/appStorage';
+import type { BudgetIconKey, EasyPayState, Payee, Screen, Txn } from '../types';
 
 export interface TxnRow {
   id: string;
@@ -51,6 +53,7 @@ export interface ProfileRow {
   label: string;
   sub: string;
   icon: ReactNode;
+  onClick?: () => void;
 }
 
 export interface IconChoice {
@@ -107,9 +110,17 @@ function phoneOk(p: string) {
 
 export function useEasyPay() {
   const [state, setStateRaw] = useState<EasyPayState>(() => {
-    const persisted = loadPersistedAuth();
+    const persisted = loadPersistedApp();
     if (persisted?.isAuthenticated) {
-      return { ...initialState, isAuthenticated: true, user: persisted.user, screen: 'home' };
+      return {
+        ...initialState,
+        isAuthenticated: true,
+        user: persisted.user,
+        balance: persisted.balance,
+        budgets: persisted.budgets,
+        txns: persisted.txns,
+        screen: 'home',
+      };
     }
     return initialState;
   });
@@ -120,6 +131,7 @@ export function useEasyPay() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const upiInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
@@ -133,6 +145,10 @@ export function useEasyPay() {
   const [scanSuccess, setScanSuccess] = useState(false);
   const [scanTick, setScanTick] = useState(0);
   const scanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [slideBlockedTick, setSlideBlockedTick] = useState(0);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'sent' | 'received'>('all');
+  const [myQrDataUrl, setMyQrDataUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   function go(screen: Screen) {
     setState({ screen });
@@ -144,9 +160,18 @@ export function useEasyPay() {
   }
 
   useEffect(() => {
-    if (state.isAuthenticated) savePersistedAuth({ isAuthenticated: true, user: state.user });
-    else clearPersistedAuth();
-  }, [state.isAuthenticated, state.user]);
+    if (state.isAuthenticated) {
+      savePersistedApp({
+        isAuthenticated: true,
+        user: state.user,
+        balance: state.balance,
+        budgets: state.budgets,
+        txns: state.txns,
+      });
+    } else {
+      clearPersistedApp();
+    }
+  }, [state.isAuthenticated, state.user, state.balance, state.budgets, state.txns]);
 
   function stopCamera() {
     if (streamRef.current) {
@@ -192,6 +217,59 @@ export function useEasyPay() {
 
   useEffect(() => stopCamera, []);
 
+  function triggerScanError() {
+    setScanError(true);
+    setScanTick((t) => t + 1);
+    if (scanErrorTimerRef.current) clearTimeout(scanErrorTimerRef.current);
+    scanErrorTimerRef.current = setTimeout(() => setScanError(false), 1600);
+  }
+
+  function triggerScanSuccess(parsed: { name: string; upi: string }) {
+    setScanSuccess(true);
+    setScanTick((t) => t + 1);
+    setTimeout(() => onScanned(parsed), 450);
+  }
+
+  function triggerGalleryUpload() {
+    galleryInputRef.current?.click();
+  }
+
+  async function onGalleryFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const text = await decodeQrFromImageFile(file);
+    const parsed = text ? parseUpiQr(text) : null;
+    if (parsed) triggerScanSuccess(parsed);
+    else triggerScanError();
+  }
+
+  function openMyQr() {
+    setState({ showMyQr: true });
+  }
+  function closeMyQr(e?: { target: EventTarget | null; currentTarget: EventTarget | null }) {
+    if (!e || e.target === e.currentTarget) setState({ showMyQr: false });
+  }
+
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    const vpa = (state.user.phone ? state.user.phone.replace(/\s+/g, '') : 'user') + '@easypay';
+    // no "am" param — a receive code lets the payer key in their own amount, unlike a merchant QR
+    const params = new URLSearchParams({ pa: vpa, pn: state.user.name || 'EasyPay user', cu: 'INR' });
+    const link = `upi://pay?${params.toString()}`;
+    let cancelled = false;
+    QRCode.toDataURL(link, { margin: 1, width: 320 })
+      .then((url) => {
+        if (!cancelled) setMyQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setMyQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.isAuthenticated, state.user.phone, state.user.name]);
+
   // ---------- real-time QR decode loop ----------
   useEffect(() => {
     if (state.screen !== 'scan' || state.cameraFallback) return;
@@ -201,13 +279,6 @@ export function useEasyPay() {
     let lastTick = 0;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-    function flagInvalid() {
-      setScanError(true);
-      setScanTick((t) => t + 1);
-      if (scanErrorTimerRef.current) clearTimeout(scanErrorTimerRef.current);
-      scanErrorTimerRef.current = setTimeout(() => setScanError(false), 1600);
-    }
 
     // Chrome exposes window.BarcodeDetector on platforms where the actual decode
     // backend isn't installed (notably desktop Linux) — detect() then just resolves
@@ -239,12 +310,10 @@ export function useEasyPay() {
             const parsed = parseUpiQr(text);
             if (parsed) {
               stopped = true;
-              setScanSuccess(true);
-              setScanTick((t) => t + 1);
-              setTimeout(() => onScanned(parsed), 450);
+              triggerScanSuccess(parsed);
               return;
             }
-            flagInvalid();
+            triggerScanError();
           }
         } catch {
           // a single bad frame isn't fatal — just keep scanning
@@ -302,6 +371,11 @@ export function useEasyPay() {
   }
 
   function onSlideDown(e: ReactPointerEvent<HTMLDivElement>) {
+    const amt = currentAmount();
+    if (amt <= 0 || amt > stateRef.current.balance) {
+      setSlideBlockedTick((t) => t + 1);
+      return;
+    }
     const track = trackRef.current;
     const knob = knobRef.current;
     if (!track || !knob || !fillRef.current) return;
@@ -390,19 +464,56 @@ export function useEasyPay() {
     const name = stateRef.current.newBudgetName.trim();
     const amt = Math.round(parseFloat(stateRef.current.newBudgetAmt || '0'));
     if (!name || !amt) return;
-    // eslint-disable-next-line react-hooks/purity -- runs from a button click handler, not during render
-    const b: Budget = { id: 'b' + Date.now(), name, allocated: amt, icon: stateRef.current.newBudgetIcon };
+    const editingId = stateRef.current.editingBudgetId;
     setState((s) => ({
-      budgets: [...s.budgets, b],
+      budgets: editingId
+        ? s.budgets.map((b) => (b.id === editingId ? { ...b, name, allocated: amt, icon: s.newBudgetIcon } : b))
+        : [...s.budgets, { id: 'b' + Date.now(), name, allocated: amt, icon: s.newBudgetIcon }],
       showCreateBudget: false,
+      editingBudgetId: null,
       newBudgetName: '',
       newBudgetAmt: '',
       newBudgetIcon: 'food',
     }));
   }
 
+  function openEditBudget(bid: string) {
+    const b = stateRef.current.budgets.find((x) => x.id === bid);
+    if (!b) return;
+    setState({
+      showCreateBudget: true,
+      editingBudgetId: bid,
+      newBudgetName: b.name,
+      newBudgetAmt: String(b.allocated),
+      newBudgetIcon: b.icon,
+    });
+  }
+
+  function deleteBudget(bid: string) {
+    setState((s) => ({
+      budgets: s.budgets.filter((b) => b.id !== bid),
+      selectedBudgetId: s.selectedBudgetId === bid ? null : s.selectedBudgetId,
+    }));
+  }
+
   function pickBudget(bid: string | null) {
     setState({ selectedBudgetId: bid, showBudgetPicker: false });
+  }
+
+  function openEditProfile() {
+    const u = stateRef.current.user;
+    setState({ showEditProfile: true, editName: u.name, editPhone: u.phone, editEmail: u.email, editBank: u.bank });
+  }
+  function closeEditProfile() {
+    setState({ showEditProfile: false });
+  }
+  function saveEditProfile() {
+    const name = stateRef.current.editName.trim();
+    if (!name) return;
+    setState((s) => ({
+      user: { ...s.user, name, phone: s.editPhone.trim(), email: s.editEmail.trim(), bank: s.editBank.trim() },
+      showEditProfile: false,
+    }));
   }
 
   function goAuth() {
@@ -435,7 +546,7 @@ export function useEasyPay() {
     setState({ user: debugUser, screen: 'home', isAuthenticated: true });
   }
   function logout() {
-    clearPersistedAuth();
+    clearPersistedApp();
     setState({ isAuthenticated: false, screen: 'auth' });
   }
 
@@ -459,6 +570,8 @@ export function useEasyPay() {
   // ---------- derived view values (mirrors renderVals in the original prototype) ----------
   const s = state;
   const ob = onboardData[s.onboardIndex];
+  const amt = currentAmount();
+  const insufficientBalance = amt > 0 && amt > s.balance;
   const payee = s.payee || ({} as Partial<Payee>);
   const upiClean = s.upiValue.trim();
   const upiValid = /@/.test(upiClean) ? /^[\w.-]+@[\w.-]+$/.test(upiClean) : /^\d[\d\s]{8,}$/.test(upiClean);
@@ -486,7 +599,10 @@ export function useEasyPay() {
     tagBg: t.budgetId ? '#EFEADD' : '#F4F1E8',
   });
   const txns = s.txns.slice(0, 4).map(mapTxn);
-  const allTxns = s.txns.map(mapTxn);
+  const filteredTxns = s.txns.filter((t) =>
+    historyFilter === 'all' ? true : historyFilter === 'sent' ? t.dir < 0 : t.dir > 0,
+  );
+  const allTxns = filteredTxns.map(mapTxn);
 
   const monthOut = s.txns.filter((t) => t.dir < 0 && !t.pending).reduce((a, t) => a + (t.raw || 0), 0);
   const monthIn = s.txns.filter((t) => t.dir > 0 && !t.pending).reduce((a, t) => a + (t.raw || 0), 0);
@@ -542,11 +658,13 @@ export function useEasyPay() {
       label: 'Personal details',
       sub: s.user.phone ? '+91 ' + s.user.phone : 'Add mobile number',
       icon: icon(['M12 12a4 4 0 100-8 4 4 0 000 8z', 'M5 20c0-3.3 3.1-6 7-6'], 18, '#141414'),
+      onClick: openEditProfile,
     },
     {
       label: 'Linked bank',
       sub: s.user.bank ? s.user.bank + ' · optional' : 'Not added · optional',
       icon: icon(['M4 10l8-5 8 5', 'M5 10v8M19 10v8M9 10v8M15 10v8M3 20h18'], 18, '#141414'),
+      onClick: openEditProfile,
     },
     {
       label: 'Default payment app',
@@ -661,6 +779,10 @@ export function useEasyPay() {
 
     // history
     allTxns,
+    historyFilter,
+    setHistoryFilterAll: () => setHistoryFilter('all'),
+    setHistoryFilterSent: () => setHistoryFilter('sent'),
+    setHistoryFilterReceived: () => setHistoryFilter('received'),
     monthOutFmt: '₹' + fmt(monthOut),
     monthInFmt: '₹' + fmt(monthIn),
 
@@ -670,13 +792,36 @@ export function useEasyPay() {
     totalSpentFmt: '₹' + fmt(totalSpent),
     totalLeftFmt: '₹' + fmt(Math.max(0, totalAllocated - totalSpent)),
     budgetsPct: totalAllocated ? Math.min(100, Math.round((totalSpent / totalAllocated) * 100)) + '%' : '0%',
-    openCreateBudget: () => setState({ showCreateBudget: true, newBudgetName: '', newBudgetAmt: '', newBudgetIcon: 'food' }),
+    openCreateBudget: () =>
+      setState({ showCreateBudget: true, editingBudgetId: null, newBudgetName: '', newBudgetAmt: '', newBudgetIcon: 'food' }),
+    openEditBudget,
+    deleteBudget,
 
     // profile
     profileRows,
+    openEditProfile,
 
-    // create budget modal
+    // edit profile modal
+    showEditProfile: s.showEditProfile,
+    editName: s.editName,
+    editPhone: s.editPhone,
+    editEmail: s.editEmail,
+    editBank: s.editBank,
+    onEditName: (e: ChangeEvent<HTMLInputElement>) => setState({ editName: e.target.value }),
+    onEditPhone: (e: ChangeEvent<HTMLInputElement>) => setState({ editPhone: (e.target.value || '').replace(/[^0-9 ]/g, '').slice(0, 11) }),
+    onEditEmail: (e: ChangeEvent<HTMLInputElement>) => setState({ editEmail: e.target.value }),
+    onEditBank: (e: ChangeEvent<HTMLInputElement>) => setState({ editBank: e.target.value }),
+    saveEditProfile,
+    saveEditProfileDisabled: !s.editName.trim(),
+    closeEditProfile: (e?: { target: EventTarget | null; currentTarget: EventTarget | null }) => {
+      if (!e || e.target === e.currentTarget) closeEditProfile();
+    },
+
+    // create/edit budget modal
     showCreateBudget: s.showCreateBudget,
+    editingBudgetId: s.editingBudgetId,
+    createBudgetTitle: s.editingBudgetId ? 'Edit budget' : 'New budget',
+    createBudgetBtnLabel: s.editingBudgetId ? 'Save changes' : 'Create budget',
     newBudgetName: s.newBudgetName,
     newBudgetAmt: s.newBudgetAmt,
     onNewBudgetName: (e: ChangeEvent<HTMLInputElement>) => setState({ newBudgetName: e.target.value }),
@@ -687,7 +832,7 @@ export function useEasyPay() {
     createBtnBg: s.newBudgetName.trim() && parseFloat(s.newBudgetAmt || '0') > 0 ? '#141414' : '#DED8C8',
     createBtnFg: s.newBudgetName.trim() && parseFloat(s.newBudgetAmt || '0') > 0 ? '#fff' : '#A69F8C',
     closeCreateBudget: (e?: { target: EventTarget | null; currentTarget: EventTarget | null }) => {
-      if (!e || e.target === e.currentTarget) setState({ showCreateBudget: false });
+      if (!e || e.target === e.currentTarget) setState({ showCreateBudget: false, editingBudgetId: null });
     },
 
     // budget picker (on amount screen)
@@ -700,7 +845,14 @@ export function useEasyPay() {
     selBudgetLabel,
     selBudgetDot: selBudget ? '#141414' : '#C6BEA9',
     pickerNewBudget: () =>
-      setState({ showBudgetPicker: false, showCreateBudget: true, newBudgetName: '', newBudgetAmt: '', newBudgetIcon: 'food' }),
+      setState({
+        showBudgetPicker: false,
+        showCreateBudget: true,
+        editingBudgetId: null,
+        newBudgetName: '',
+        newBudgetAmt: '',
+        newBudgetIcon: 'food',
+      }),
 
     // onboarding
     onboardKey: 'ob' + s.onboardIndex,
@@ -789,6 +941,16 @@ export function useEasyPay() {
       resetScanFeedback();
       setState({ screen: 'scan', cameraFallback: false });
     },
+    galleryInputRef,
+    triggerGalleryUpload,
+    onGalleryFile,
+
+    // my QR (receive money)
+    showMyQr: s.showMyQr,
+    openMyQr,
+    closeMyQr,
+    myQrDataUrl,
+    myQrVpa: (s.user.phone ? s.user.phone.replace(/\s+/g, '') : 'user') + '@easypay',
 
     // upi entry
     upiValue: s.upiValue,
@@ -819,6 +981,8 @@ export function useEasyPay() {
     },
     onSlideDown,
     gpayLogo: <GpayLogo />,
+    insufficientBalance,
+    slideBlockedTick,
 
     // confirm (overlaid on the receipt right after the slide-to-pay handoff)
     showConfirm: s.showConfirm,
@@ -828,6 +992,25 @@ export function useEasyPay() {
     // receipt
     receiptTime: timeStr,
     receiptRows,
+    shareCopied,
+    shareReceipt: async () => {
+      const text = `Paid ₹${s.amount || '0'} to ${payee.name || ''} (${payee.upi || ''}) via UPI · Google Pay\n${timeStr}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'EasyPay receipt', text });
+          return;
+        } catch {
+          // user dismissed the share sheet, or the platform doesn't actually support it — fall back to clipboard
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 1800);
+      } catch {
+        // clipboard unavailable (insecure context, permissions) — nothing more we can do here
+      }
+    },
     finishToHome: () => {
       setState({ screen: 'home', amount: '', noteValue: '', payee: null, upiValue: '' });
       pendingTxnRef.current = null;

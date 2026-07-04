@@ -61,6 +61,9 @@ export function Amount(V: EasyPayVals) {
             </svg>
           </button>
         </div>
+        {V.insufficientBalance && (
+          <div style={css('margin-top:14px;font-size:12px;color:#C0455B;font-weight:500')}>Insufficient balance — max ₹{V.balanceFmt}</div>
+        )}
       </div>
 
       <div style={css('flex:1;min-height:8px')} />
@@ -77,7 +80,13 @@ export function Amount(V: EasyPayVals) {
         ))}
       </div>
 
-      <div ref={V.trackRef} style={css('position:relative;height:62px;border-radius:18px;background:#141414;overflow:hidden;user-select:none;touch-action:none')}>
+      <div
+        key={V.slideBlockedTick}
+        ref={V.trackRef}
+        style={css(
+          `position:relative;height:62px;border-radius:18px;background:${V.insufficientBalance ? '#B9B4A6' : '#141414'};overflow:hidden;user-select:none;touch-action:none;animation:${V.insufficientBalance ? 'ep-shake .4s ease both' : 'none'}`,
+        )}
+      >
         <div ref={V.fillRef} style={css('position:absolute;inset:0;width:62px;background:linear-gradient(90deg,#1a1a1a,#333);border-radius:18px')} />
         <div style={css('position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.9);pointer-events:none;padding-left:34px')}>
           <span style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px")}>Slide to pay via</span>

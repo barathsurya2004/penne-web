@@ -10,7 +10,7 @@ export function CreateBudgetSheet(V: EasyPayVals) {
     >
       <div onClick={V.stopProp} style={css('width:100%;background:#F5F1E8;border-radius:28px 28px 0 0;padding:24px 22px calc(30px + var(--safe-b));animation:ep-rise .32s ease both')}>
         <div style={css('width:44px;height:5px;border-radius:99px;background:#DAD4C4;margin:0 auto 20px')} />
-        <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:20px;color:#141414;letter-spacing:-.4px")}>New budget</div>
+        <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:20px;color:#141414;letter-spacing:-.4px")}>{V.createBudgetTitle}</div>
         <div style={css('font-size:12.5px;color:#8A8577;margin-top:4px;margin-bottom:20px')}>Create a category and set how much you want to allow.</div>
 
         <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>Category name</label>
@@ -51,7 +51,7 @@ export function CreateBudgetSheet(V: EasyPayVals) {
           disabled={V.createDisabled}
           style={css(`margin-top:24px;width:100%;height:56px;border:none;border-radius:16px;background:${V.createBtnBg};color:${V.createBtnFg};font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:.2s`)}
         >
-          Create budget
+          {V.createBudgetBtnLabel}
         </button>
       </div>
     </div>

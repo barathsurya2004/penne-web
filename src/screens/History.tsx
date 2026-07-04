@@ -21,12 +21,32 @@ export function History(V: EasyPayVals) {
       </div>
       <div style={css('padding:22px 22px 8px;display:flex;align-items:center;justify-content:space-between')}>
         <span style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;color:#8A8577")}>All activity</span>
-        <span style={css('font-size:11.5px;color:#A8A292;display:inline-flex;align-items:center;gap:5px')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <path d="M4 6h16M7 12h10M10 18h4" stroke="#A8A292" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-          Filter
-        </span>
+        <div style={css('display:flex;gap:6px')}>
+          <button
+            onClick={V.setHistoryFilterAll}
+            style={css(
+              `background:${V.historyFilter === 'all' ? '#141414' : '#fff'};color:${V.historyFilter === 'all' ? '#fff' : '#8A8577'};font-size:11px;font-weight:500;padding:6px 11px;border-radius:99px;cursor:pointer;border:1px solid ${V.historyFilter === 'all' ? '#141414' : '#EBE6D9'}`,
+            )}
+          >
+            All
+          </button>
+          <button
+            onClick={V.setHistoryFilterSent}
+            style={css(
+              `background:${V.historyFilter === 'sent' ? '#141414' : '#fff'};color:${V.historyFilter === 'sent' ? '#fff' : '#8A8577'};font-size:11px;font-weight:500;padding:6px 11px;border-radius:99px;cursor:pointer;border:1px solid ${V.historyFilter === 'sent' ? '#141414' : '#EBE6D9'}`,
+            )}
+          >
+            Sent
+          </button>
+          <button
+            onClick={V.setHistoryFilterReceived}
+            style={css(
+              `background:${V.historyFilter === 'received' ? '#141414' : '#fff'};color:${V.historyFilter === 'received' ? '#fff' : '#8A8577'};font-size:11px;font-weight:500;padding:6px 11px;border-radius:99px;cursor:pointer;border:1px solid ${V.historyFilter === 'received' ? '#141414' : '#EBE6D9'}`,
+            )}
+          >
+            Received
+          </button>
+        </div>
       </div>
       <div style={css('margin:0 18px;background:#fff;border:1px solid #EBE6D9;border-radius:20px;overflow:hidden')}>
         {V.allTxns.map((t) => (
@@ -52,6 +72,11 @@ export function History(V: EasyPayVals) {
             </div>
           </div>
         ))}
+        {V.allTxns.length === 0 && (
+          <div style={css('padding:32px 20px;text-align:center;font-size:13px;color:#A8A292')}>
+            No {V.historyFilter === 'sent' ? 'sent' : 'received'} transactions yet
+          </div>
+        )}
       </div>
     </div>
   );

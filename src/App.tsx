@@ -17,6 +17,8 @@ import { TabBar } from './components/TabBar';
 import { BudgetPicker } from './components/BudgetPicker';
 import { AddBalanceSheet } from './components/AddBalanceSheet';
 import { CreateBudgetSheet } from './components/CreateBudgetSheet';
+import { EditProfileSheet } from './components/EditProfileSheet';
+import { MyQrSheet } from './components/MyQrSheet';
 
 function App() {
   const V = useEasyPay();
@@ -39,6 +41,8 @@ function App() {
       <BudgetPicker {...V} />
       <AddBalanceSheet {...V} />
       <CreateBudgetSheet {...V} />
+      <EditProfileSheet {...V} />
+      <MyQrSheet {...V} />
       <Confirm {...V} />
       <TabBar {...V} />
     </div>

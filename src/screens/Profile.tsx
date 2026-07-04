@@ -20,7 +20,10 @@ export function Profile(V: EasyPayVals) {
             <span style={css('white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>{V.userSub}</span>
           </div>
         </div>
-        <button style={css('width:38px;height:38px;border-radius:12px;background:#F4F1E8;border:1px solid #EBE6D9;display:flex;align-items:center;justify-content:center;cursor:pointer')}>
+        <button
+          onClick={V.openEditProfile}
+          style={css('width:38px;height:38px;border-radius:12px;background:#F4F1E8;border:1px solid #EBE6D9;display:flex;align-items:center;justify-content:center;cursor:pointer')}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="#141414" strokeWidth="1.6" strokeLinejoin="round" />
             <path d="M13 6l4 4" stroke="#141414" strokeWidth="1.6" />
@@ -33,7 +36,10 @@ export function Profile(V: EasyPayVals) {
           {V.profileRows.map((p, i) => (
             <button
               key={i}
-              style={css('display:flex;align-items:center;gap:14px;width:100%;padding:15px 16px;background:none;border:none;border-bottom:1px solid #F1EDE2;cursor:pointer;text-align:left')}
+              onClick={p.onClick}
+              style={css(
+                `display:flex;align-items:center;gap:14px;width:100%;padding:15px 16px;background:none;border:none;border-bottom:1px solid #F1EDE2;text-align:left;cursor:${p.onClick ? 'pointer' : 'default'}`,
+              )}
             >
               <span style={css('width:36px;height:36px;border-radius:11px;background:#F4F1E8;border:1px solid #EBE6D9;display:flex;align-items:center;justify-content:center;flex-shrink:0')}>
                 {p.icon}

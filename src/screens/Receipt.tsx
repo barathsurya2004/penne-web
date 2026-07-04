@@ -48,8 +48,12 @@ export function Receipt(V: EasyPayVals) {
         </div>
       </div>
       <div style={css('flex:1;min-height:18px')} />
+      {V.shareCopied && (
+        <div style={css('text-align:center;font-size:12px;color:#2E7D52;margin-bottom:8px')}>Copied to clipboard</div>
+      )}
       <div style={css('display:flex;gap:12px')}>
         <button
+          onClick={V.shareReceipt}
           style={css(
             "flex:1;border:1.5px solid #141414;background:none;color:#141414;height:54px;border-radius:16px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer",
           )}

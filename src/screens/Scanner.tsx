@@ -82,7 +82,10 @@ export function Scanner(V: EasyPayVals) {
 
       <div style={css('position:absolute;bottom:0;left:0;right:0;background:#F5F1E8;border-radius:26px 26px 0 0;padding:22px 22px calc(30px + var(--safe-b));z-index:20')}>
         <div style={css('display:flex;gap:12px;margin-bottom:16px')}>
-          <div style={css('flex:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid #EBE6D9;border-radius:15px')}>
+          <button
+            onClick={V.triggerGalleryUpload}
+            style={css('flex:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid #EBE6D9;border-radius:15px;cursor:pointer;text-align:left')}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="4" y="4" width="16" height="16" rx="3" stroke="#141414" strokeWidth="1.5" />
               <path d="M8 12h8M12 8v8" stroke="#141414" strokeWidth="1.5" />
@@ -92,8 +95,12 @@ export function Scanner(V: EasyPayVals) {
               <br />
               gallery
             </span>
-          </div>
-          <div style={css('flex:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid #EBE6D9;border-radius:15px')}>
+          </button>
+          <input ref={V.galleryInputRef} type="file" accept="image/*" onChange={V.onGalleryFile} style={css('display:none')} />
+          <button
+            onClick={V.openMyQr}
+            style={css('flex:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid #EBE6D9;border-radius:15px;cursor:pointer;text-align:left')}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="#141414" strokeWidth="1.5" />
               <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="#141414" strokeWidth="1.5" />
@@ -105,7 +112,7 @@ export function Scanner(V: EasyPayVals) {
               <br />
               code
             </span>
-          </div>
+          </button>
         </div>
         <button
           onClick={V.switchToManual}

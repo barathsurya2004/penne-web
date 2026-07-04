@@ -83,4 +83,11 @@ export interface EasyPayState {
   newBudgetIcon: BudgetIconKey;
   budgets: Budget[];
   txns: Txn[];
+  showEditProfile: boolean;
+  editName: string;
+  editPhone: string;
+  editEmail: string;
+  editBank: string;
+  editingBudgetId: string | null;
+  showMyQr: boolean;
 }

@@ -56,4 +56,11 @@ export const initialState: EasyPayState = {
   newBudgetIcon: 'food',
   budgets: initialBudgets,
   txns: initialTxns,
+  showEditProfile: false,
+  editName: '',
+  editPhone: '',
+  editEmail: '',
+  editBank: '',
+  editingBudgetId: null,
+  showMyQr: false,
 };
