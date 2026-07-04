@@ -29,7 +29,7 @@ export function ManualUpi(V: EasyPayVals) {
             placeholder="name@bank or 98765 43210"
             inputMode="text"
             autoComplete="off"
-            style={css("flex:1;border:none;outline:none;background:none;font-size:15px;color:#141414;padding:16px 0;font-family:'Roboto',sans-serif")}
+            style={css("flex:1;border:none;outline:none;background:none;font-size:16px;color:#141414;padding:16px 0;font-family:'Roboto',sans-serif")}
           />
           {V.upiValid && (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

@@ -1,8 +1,9 @@
 import { css } from '../lib/style';
+import { scrollFieldIntoView } from '../lib/dom';
 import type { EasyPayVals } from '../hooks/useEasyPay';
 
 const inputStyle = css(
-  "margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:14px 16px;font-size:15px;color:#141414;outline:none;font-family:'Roboto',sans-serif",
+  "margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:14px 16px;font-size:16px;color:#141414;outline:none;font-family:'Roboto',sans-serif",
 );
 
 export function EditProfileSheet(V: EasyPayVals) {
@@ -25,7 +26,7 @@ export function EditProfileSheet(V: EasyPayVals) {
         </div>
 
         <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>Full name</label>
-        <input value={V.editName} onChange={V.onEditName} placeholder="e.g. Aditi Rao" style={inputStyle} />
+        <input value={V.editName} onChange={V.onEditName} onFocus={scrollFieldIntoView} placeholder="e.g. Aditi Rao" style={inputStyle} />
 
         <label style={css('display:block;margin-top:16px;font-size:12px;color:#8A8577;font-weight:500')}>Mobile number</label>
         <div style={css('margin-top:8px;display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:0 16px')}>
@@ -35,21 +36,29 @@ export function EditProfileSheet(V: EasyPayVals) {
           <input
             value={V.editPhone}
             onChange={V.onEditPhone}
+            onFocus={scrollFieldIntoView}
             placeholder="98765 43210"
             inputMode="numeric"
-            style={css("flex:1;border:none;outline:none;background:none;font-size:15px;color:#141414;padding:14px 0;font-family:'Roboto',sans-serif;letter-spacing:.5px")}
+            style={css("flex:1;border:none;outline:none;background:none;font-size:16px;color:#141414;padding:14px 0;font-family:'Roboto',sans-serif;letter-spacing:.5px")}
           />
         </div>
 
         <label style={css('display:block;margin-top:16px;font-size:12px;color:#8A8577;font-weight:500')}>
           Email <span style={css('color:#B4AE9E;font-weight:400')}>· optional</span>
         </label>
-        <input value={V.editEmail} onChange={V.onEditEmail} placeholder="you@email.com" inputMode="email" style={inputStyle} />
+        <input
+          value={V.editEmail}
+          onChange={V.onEditEmail}
+          onFocus={scrollFieldIntoView}
+          placeholder="you@email.com"
+          inputMode="email"
+          style={inputStyle}
+        />
 
         <label style={css('display:block;margin-top:16px;font-size:12px;color:#8A8577;font-weight:500')}>
           Bank name <span style={css('color:#B4AE9E;font-weight:400')}>· optional</span>
         </label>
-        <input value={V.editBank} onChange={V.onEditBank} placeholder="e.g. HDFC Bank" style={inputStyle} />
+        <input value={V.editBank} onChange={V.onEditBank} onFocus={scrollFieldIntoView} placeholder="e.g. HDFC Bank" style={inputStyle} />
 
         <button
           onClick={V.saveEditProfile}

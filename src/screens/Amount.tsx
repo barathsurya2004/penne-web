@@ -47,7 +47,7 @@ export function Amount(V: EasyPayVals) {
               value={V.noteValue}
               onChange={V.onNoteInput}
               placeholder="Add a note"
-              style={css("border:none;outline:none;background:none;font-size:12.5px;color:#5B564A;width:82px;font-family:'Roboto',sans-serif")}
+              style={css("border:none;outline:none;background:none;font-size:16px;color:#5B564A;width:82px;font-family:'Roboto',sans-serif")}
             />
           </div>
           <button

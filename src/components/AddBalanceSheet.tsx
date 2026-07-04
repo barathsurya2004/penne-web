@@ -1,4 +1,5 @@
 import { css } from '../lib/style';
+import { scrollFieldIntoView } from '../lib/dom';
 import type { EasyPayVals } from '../hooks/useEasyPay';
 
 export function AddBalanceSheet(V: EasyPayVals) {
@@ -8,7 +9,12 @@ export function AddBalanceSheet(V: EasyPayVals) {
       onClick={V.closeAddBalance}
       style={css('position:absolute;inset:0;background:rgba(20,20,20,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;z-index:80')}
     >
-      <div onClick={V.stopProp} style={css('width:100%;background:#F5F1E8;border-radius:28px 28px 0 0;padding:24px 22px calc(30px + var(--safe-b));animation:ep-rise .32s ease both')}>
+      <div
+        onClick={V.stopProp}
+        style={css(
+          'width:100%;max-height:88%;overflow-y:auto;background:#F5F1E8;border-radius:28px 28px 0 0;padding:24px 22px calc(30px + var(--safe-b));animation:ep-rise .32s ease both',
+        )}
+      >
         <div style={css('width:44px;height:5px;border-radius:99px;background:#DAD4C4;margin:0 auto 20px')} />
         <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:20px;color:#141414;letter-spacing:-.4px")}>Add money</div>
         <div style={css('font-size:12.5px;color:#8A8577;margin-top:4px')}>Top up your EasyPay wallet from your linked bank account.</div>
@@ -21,9 +27,10 @@ export function AddBalanceSheet(V: EasyPayVals) {
         <input
           value={V.addAmount}
           onChange={V.onAddAmount}
+          onFocus={scrollFieldIntoView}
           placeholder="Enter amount"
           inputMode="numeric"
-          style={css("width:100%;text-align:center;background:none;border:none;border-bottom:1.5px solid #E4DFD1;outline:none;font-size:14px;color:#5B564A;padding:8px 0 12px;font-family:'Roboto',sans-serif")}
+          style={css("width:100%;text-align:center;background:none;border:none;border-bottom:1.5px solid #E4DFD1;outline:none;font-size:16px;color:#5B564A;padding:8px 0 12px;font-family:'Roboto',sans-serif")}
         />
         <div style={css('display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px')}>
           {V.addChips.map((c, i) => (

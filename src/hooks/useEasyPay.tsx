@@ -547,7 +547,20 @@ export function useEasyPay() {
   }
   function logout() {
     clearPersistedApp();
-    setState({ isAuthenticated: false, screen: 'auth' });
+    pendingTxnRef.current = null;
+    setStateRaw({ ...initialState, screen: 'auth' });
+  }
+
+  function deleteAllData() {
+    if (
+      !window.confirm(
+        'Delete all your EasyPay data? This clears your balance, transactions, budgets, and profile — it cannot be undone.',
+      )
+    )
+      return;
+    clearPersistedApp();
+    pendingTxnRef.current = null;
+    setStateRaw({ ...initialState, screen: 'onboard' });
   }
 
   function goHome() {
@@ -736,7 +749,7 @@ export function useEasyPay() {
     onClick: () => pressKey(k),
   }));
 
-  const addChips: AddChip[] = [500, 1000, 2000, 5000].map((v) => ({
+  const addChips: AddChip[] = [500, 1000, 1500, 2000].map((v) => ({
     label: '+ ₹' + fmt(v),
     onClick: () => setState({ addAmount: String(v) }),
   }));
@@ -876,6 +889,7 @@ export function useEasyPay() {
     backToAuth: () => go('auth'),
     debugLogin,
     logout,
+    deleteAllData,
 
     // login
     authPhone: s.authPhone,
@@ -902,8 +916,8 @@ export function useEasyPay() {
     actions,
     txns,
     openScan,
-    userName: s.user.name,
-    userInitials: initialsOf(s.user.name),
+    userName: s.user.name || 'EasyPay user',
+    userInitials: initialsOf(s.user.name || 'EasyPay user'),
     userSub: s.user.email || (s.user.phone ? '+91 ' + s.user.phone : 'EasyPay member'),
 
     // add balance

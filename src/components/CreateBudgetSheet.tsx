@@ -1,4 +1,5 @@
 import { css } from '../lib/style';
+import { scrollFieldIntoView } from '../lib/dom';
 import type { EasyPayVals } from '../hooks/useEasyPay';
 
 export function CreateBudgetSheet(V: EasyPayVals) {
@@ -8,7 +9,12 @@ export function CreateBudgetSheet(V: EasyPayVals) {
       onClick={V.closeCreateBudget}
       style={css('position:absolute;inset:0;background:rgba(20,20,20,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;z-index:80')}
     >
-      <div onClick={V.stopProp} style={css('width:100%;background:#F5F1E8;border-radius:28px 28px 0 0;padding:24px 22px calc(30px + var(--safe-b));animation:ep-rise .32s ease both')}>
+      <div
+        onClick={V.stopProp}
+        style={css(
+          'width:100%;max-height:88%;overflow-y:auto;background:#F5F1E8;border-radius:28px 28px 0 0;padding:24px 22px calc(30px + var(--safe-b));animation:ep-rise .32s ease both',
+        )}
+      >
         <div style={css('width:44px;height:5px;border-radius:99px;background:#DAD4C4;margin:0 auto 20px')} />
         <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:20px;color:#141414;letter-spacing:-.4px")}>{V.createBudgetTitle}</div>
         <div style={css('font-size:12.5px;color:#8A8577;margin-top:4px;margin-bottom:20px')}>Create a category and set how much you want to allow.</div>
@@ -17,8 +23,9 @@ export function CreateBudgetSheet(V: EasyPayVals) {
         <input
           value={V.newBudgetName}
           onChange={V.onNewBudgetName}
+          onFocus={scrollFieldIntoView}
           placeholder="e.g. Groceries"
-          style={css("margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:14px 16px;font-size:15px;color:#141414;outline:none;font-family:'Roboto',sans-serif")}
+          style={css("margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:14px 16px;font-size:16px;color:#141414;outline:none;font-family:'Roboto',sans-serif")}
         />
 
         <label style={css('display:block;margin-top:16px;font-size:12px;color:#8A8577;font-weight:500')}>Monthly allocation</label>
@@ -27,6 +34,7 @@ export function CreateBudgetSheet(V: EasyPayVals) {
           <input
             value={V.newBudgetAmt}
             onChange={V.onNewBudgetAmt}
+            onFocus={scrollFieldIntoView}
             placeholder="5000"
             inputMode="numeric"
             style={css("flex:1;border:none;outline:none;background:none;font-size:17px;color:#141414;padding:14px 0;font-family:'IBM Plex Sans',sans-serif;font-weight:500")}

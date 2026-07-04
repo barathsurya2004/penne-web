@@ -1,8 +1,9 @@
 import { css } from '../lib/style';
+import { scrollFieldIntoView } from '../lib/dom';
 import type { EasyPayVals } from '../hooks/useEasyPay';
 
 const inputStyle = css(
-  "margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:15px 16px;font-size:15px;color:#141414;outline:none;font-family:'Roboto',sans-serif",
+  "margin-top:8px;width:100%;background:#fff;border:1.5px solid #EBE6D9;border-radius:14px;padding:15px 16px;font-size:16px;color:#141414;outline:none;font-family:'Roboto',sans-serif",
 );
 
 export function Signup(V: EasyPayVals) {
@@ -31,7 +32,7 @@ export function Signup(V: EasyPayVals) {
       <div style={css('margin-top:24px;display:flex;flex-direction:column;gap:16px')}>
         <div>
           <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>Full name</label>
-          <input value={V.suName} onChange={V.onSuName} placeholder="e.g. Aditi Rao" style={inputStyle} />
+          <input value={V.suName} onChange={V.onSuName} onFocus={scrollFieldIntoView} placeholder="e.g. Aditi Rao" style={inputStyle} />
         </div>
         <div>
           <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>Mobile number</label>
@@ -42,9 +43,10 @@ export function Signup(V: EasyPayVals) {
             <input
               value={V.authPhone}
               onChange={V.onAuthPhone}
+              onFocus={scrollFieldIntoView}
               placeholder="98765 43210"
               inputMode="numeric"
-              style={css("flex:1;border:none;outline:none;background:none;font-size:15px;color:#141414;padding:15px 0;font-family:'Roboto',sans-serif;letter-spacing:.5px")}
+              style={css("flex:1;border:none;outline:none;background:none;font-size:16px;color:#141414;padding:15px 0;font-family:'Roboto',sans-serif;letter-spacing:.5px")}
             />
           </div>
         </div>
@@ -52,13 +54,20 @@ export function Signup(V: EasyPayVals) {
           <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>
             Email <span style={css('color:#B4AE9E;font-weight:400')}>· optional</span>
           </label>
-          <input value={V.suEmail} onChange={V.onSuEmail} placeholder="you@email.com" inputMode="email" style={inputStyle} />
+          <input
+            value={V.suEmail}
+            onChange={V.onSuEmail}
+            onFocus={scrollFieldIntoView}
+            placeholder="you@email.com"
+            inputMode="email"
+            style={inputStyle}
+          />
         </div>
         <div>
           <label style={css('font-size:12px;color:#8A8577;font-weight:500')}>
             Bank name <span style={css('color:#B4AE9E;font-weight:400')}>· optional</span>
           </label>
-          <input value={V.suBank} onChange={V.onSuBank} placeholder="e.g. HDFC Bank" style={inputStyle} />
+          <input value={V.suBank} onChange={V.onSuBank} onFocus={scrollFieldIntoView} placeholder="e.g. HDFC Bank" style={inputStyle} />
           <div style={css('display:flex;align-items:flex-start;gap:7px;margin-top:9px')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={css('flex-shrink:0;margin-top:1px')}>
               <circle cx="12" cy="12" r="9" stroke="#A29A86" strokeWidth="1.6" />

@@ -62,6 +62,15 @@ export function Profile(V: EasyPayVals) {
         >
           Log out
         </button>
+      </div>
+      <div style={css("padding:6px 22px 6px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;color:#8A8577")}>Danger zone</div>
+      <div style={css('padding:0 18px 18px')}>
+        <button
+          onClick={V.deleteAllData}
+          style={css("width:100%;height:52px;border-radius:16px;border:none;background:#C0455B;color:#fff;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer")}
+        >
+          Delete all data
+        </button>
         <div style={css('text-align:center;font-size:11px;color:#B4AE9E;margin-top:14px')}>EasyPay · v2.4.1</div>
       </div>
     </div>
