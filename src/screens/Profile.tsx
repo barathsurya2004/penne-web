@@ -51,7 +51,7 @@ export function Profile(V: EasyPayVals) {
       </div>
       <div style={css('padding:18px')}>
         <button
-          onClick={V.goAuth}
+          onClick={V.logout}
           style={css("width:100%;height:52px;border-radius:16px;border:1.5px solid #E2C4CB;background:none;color:#C0455B;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer")}
         >
           Log out

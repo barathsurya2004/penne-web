@@ -1,4 +1,4 @@
-import type { Budget, EasyPayState, Txn } from './types';
+import type { Budget, EasyPayState, Txn, User } from './types';
 
 export const initialBudgets: Budget[] = [
   { id: 'b1', name: 'Food & Dining', allocated: 6000, icon: 'food' },
@@ -22,8 +22,16 @@ export const onboardData = [
   { t: 'Powered by\nthe apps you trust.', b: 'Pay through Google Pay over UPI, right from EasyPay. Fast, familiar, secure.' },
 ];
 
+export const debugUser: User = {
+  name: 'Test User',
+  phone: '90000 00000',
+  email: 'test.user@easypay.dev',
+  bank: 'Demo Bank',
+};
+
 export const initialState: EasyPayState = {
   screen: 'onboard',
+  isAuthenticated: false,
   onboardIndex: 0,
   authMode: 'signup',
   authPhone: '',

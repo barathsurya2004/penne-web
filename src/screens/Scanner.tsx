@@ -45,12 +45,12 @@ export function Scanner(V: EasyPayVals) {
         <div style={css('position:absolute;inset:0;overflow:hidden;border-radius:24px')}>
           <div style={css('position:absolute;left:6%;right:6%;height:2px;background:linear-gradient(90deg,transparent,#7FC19B,transparent);box-shadow:0 0 14px 2px #7FC19B;animation:ep-scanline 2.4s ease-in-out infinite')} />
         </div>
-        <span style={css('position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid #fff;border-left:3px solid #fff;border-radius:16px 0 0 0')} />
-        <span style={css('position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid #fff;border-right:3px solid #fff;border-radius:0 16px 0 0')} />
-        <span style={css('position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid #fff;border-left:3px solid #fff;border-radius:0 0 0 16px')} />
-        <span style={css('position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 16px 0')} />
+        <span style={css(`position:absolute;top:0;left:0;width:34px;height:34px;border-top:3px solid ${V.scanError ? '#E27878' : '#fff'};border-left:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:16px 0 0 0;transition:border-color .2s`)} />
+        <span style={css(`position:absolute;top:0;right:0;width:34px;height:34px;border-top:3px solid ${V.scanError ? '#E27878' : '#fff'};border-right:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 16px 0 0;transition:border-color .2s`)} />
+        <span style={css(`position:absolute;bottom:0;left:0;width:34px;height:34px;border-bottom:3px solid ${V.scanError ? '#E27878' : '#fff'};border-left:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 0 0 16px;transition:border-color .2s`)} />
+        <span style={css(`position:absolute;bottom:0;right:0;width:34px;height:34px;border-bottom:3px solid ${V.scanError ? '#E27878' : '#fff'};border-right:3px solid ${V.scanError ? '#E27878' : '#fff'};border-radius:0 0 16px 0;transition:border-color .2s`)} />
       </div>
-      <div style={css('position:absolute;top:calc(34% + 140px);left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12.5px;z-index:15;animation:ep-pulse 1.6s infinite')}>
+      <div style={css(`position:absolute;top:calc(34% + 140px);left:0;right:0;text-align:center;color:${V.scanError ? '#E27878' : 'rgba(255,255,255,.7)'};font-size:12.5px;z-index:15;animation:ep-pulse 1.6s infinite`)}>
         {V.scanHint}
       </div>
 

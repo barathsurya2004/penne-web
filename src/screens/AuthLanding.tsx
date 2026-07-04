@@ -39,6 +39,14 @@ export function AuthLanding(V: EasyPayVals) {
         <p style={css('text-align:center;font-size:11px;color:rgba(255,255,255,.4);margin:8px 8px 0;line-height:1.5')}>
           By continuing you agree to our Terms &amp; Privacy. We never store your card or bank credentials.
         </p>
+        <button
+          onClick={V.debugLogin}
+          style={css(
+            "width:100%;height:40px;border:1px dashed rgba(255,255,255,.3);background:none;color:rgba(255,255,255,.55);border-radius:12px;font-family:'IBM Plex Sans',sans-serif;font-weight:500;font-size:12.5px;cursor:pointer;margin-top:2px",
+          )}
+        >
+          Debug: skip to test account
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { initialState, onboardData } from '../data';
+import jsQR from 'jsqr';
+import { debugUser, initialState, onboardData } from '../data';
 import { GpayLogo, GpayLogo2, QrArt } from '../lib/icons';
 import { budgetIcon, icon, onboardArts } from '../lib/glyphs';
+import { parseUpiQr } from '../lib/upiQr';
+import { buildUpiPayLink, openUpiApp } from '../lib/upiPay';
+import { clearPersistedAuth, loadPersistedAuth, savePersistedAuth } from '../lib/authStorage';
 import type { Budget, BudgetIconKey, EasyPayState, Payee, Screen, Txn } from '../types';
 
 export interface TxnRow {
@@ -102,7 +106,13 @@ function phoneOk(p: string) {
 }
 
 export function useEasyPay() {
-  const [state, setStateRaw] = useState<EasyPayState>(initialState);
+  const [state, setStateRaw] = useState<EasyPayState>(() => {
+    const persisted = loadPersistedAuth();
+    if (persisted?.isAuthenticated) {
+      return { ...initialState, isAuthenticated: true, user: persisted.user, screen: 'home' };
+    }
+    return initialState;
+  });
 
   function setState(patch: Partial<EasyPayState> | ((prev: EasyPayState) => Partial<EasyPayState>)) {
     setStateRaw((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }));
@@ -115,18 +125,23 @@ export function useEasyPay() {
   const fillRef = useRef<HTMLDivElement>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
-  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRef = useRef<{ startX: number; max: number; x: number } | null>(null);
   const pendingTxnRef = useRef<Txn | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const [scanError, setScanError] = useState(false);
+  const scanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function go(screen: Screen) {
     setState({ screen });
   }
 
+  useEffect(() => {
+    if (state.isAuthenticated) savePersistedAuth({ isAuthenticated: true, user: state.user });
+    else clearPersistedAuth();
+  }, [state.isAuthenticated, state.user]);
+
   function stopCamera() {
-    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -146,10 +161,6 @@ export function useEasyPay() {
   }
 
   async function startCamera() {
-    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-    scanTimerRef.current = setTimeout(() => {
-      if (stateRef.current.screen === 'scan') onScanned({ name: 'Chai Point', upi: 'chaipoint@ybl' });
-    }, 4200);
     try {
       const s = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
@@ -173,6 +184,73 @@ export function useEasyPay() {
   }, [state.screen]);
 
   useEffect(() => stopCamera, []);
+
+  // ---------- real-time QR decode loop ----------
+  useEffect(() => {
+    if (state.screen !== 'scan' || state.cameraFallback) return;
+
+    let stopped = false;
+    let raf = 0;
+    let lastTick = 0;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    function flagInvalid() {
+      setScanError(true);
+      if (scanErrorTimerRef.current) clearTimeout(scanErrorTimerRef.current);
+      scanErrorTimerRef.current = setTimeout(() => setScanError(false), 1600);
+    }
+
+    // Chrome exposes window.BarcodeDetector on platforms where the actual decode
+    // backend isn't installed (notably desktop Linux) — detect() then just resolves
+    // empty forever with no error. jsQR has no such gap, so it's the only path used.
+    function decodeFrame(video: HTMLVideoElement): string | null {
+      if (!ctx || !video.videoWidth) return null;
+      const w = Math.min(video.videoWidth, 640);
+      const h = Math.round(video.videoHeight * (w / video.videoWidth));
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+      const frame = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(frame.data, w, h, { inversionAttempts: 'attemptBoth' });
+      return code?.data ?? null;
+    }
+
+    function tick(ts: number) {
+      if (stopped) return;
+      if (ts - lastTick < 150) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastTick = ts;
+      const video = videoRef.current;
+      if (video && video.readyState >= 2 && video.videoWidth) {
+        try {
+          const text = decodeFrame(video);
+          if (text) {
+            const parsed = parseUpiQr(text);
+            if (parsed) {
+              stopped = true;
+              onScanned(parsed);
+              return;
+            }
+            flagInvalid();
+          }
+        } catch {
+          // a single bad frame isn't fatal — just keep scanning
+        }
+      }
+      if (!stopped) raf = requestAnimationFrame(tick);
+    }
+
+    raf = requestAnimationFrame(tick);
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      if (scanErrorTimerRef.current) clearTimeout(scanErrorTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.screen, state.cameraFallback]);
 
   function pressKey(k: string) {
     setState((s) => {
@@ -253,6 +331,7 @@ export function useEasyPay() {
     };
     pendingTxnRef.current = txn;
     setState((s) => ({ txns: [txn, ...s.txns], balance: s.balance - amt, screen: 'gpay', gpayPhase: 'loading' }));
+    openUpiApp(buildUpiPayLink(p, amt, stateRef.current.noteValue));
     setTimeout(() => {
       if (stateRef.current.screen === 'gpay') setState({ gpayPhase: 'done' });
     }, 2600);
@@ -301,6 +380,7 @@ export function useEasyPay() {
     const name = stateRef.current.newBudgetName.trim();
     const amt = Math.round(parseFloat(stateRef.current.newBudgetAmt || '0'));
     if (!name || !amt) return;
+    // eslint-disable-next-line react-hooks/purity -- runs from a button click handler, not during render
     const b: Budget = { id: 'b' + Date.now(), name, allocated: amt, icon: stateRef.current.newBudgetIcon };
     setState((s) => ({
       budgets: [...s.budgets, b],
@@ -325,7 +405,7 @@ export function useEasyPay() {
     setState({ authMode: 'login', authPhone: '', screen: 'login' });
   }
   function submitLogin() {
-    if (phoneOk(stateRef.current.authPhone)) setState({ screen: 'home' });
+    if (phoneOk(stateRef.current.authPhone)) setState({ screen: 'home', isAuthenticated: true });
   }
   function finishSetup() {
     const name = stateRef.current.suName.trim();
@@ -338,7 +418,15 @@ export function useEasyPay() {
         bank: stateRef.current.suBank.trim(),
       },
       screen: 'home',
+      isAuthenticated: true,
     });
+  }
+  function debugLogin() {
+    setState({ user: debugUser, screen: 'home', isAuthenticated: true });
+  }
+  function logout() {
+    clearPersistedAuth();
+    setState({ isAuthenticated: false, screen: 'auth' });
   }
 
   function goHome() {
@@ -625,6 +713,8 @@ export function useEasyPay() {
     startSignup,
     startLogin,
     backToAuth: () => go('auth'),
+    debugLogin,
+    logout,
 
     // login
     authPhone: s.authPhone,
@@ -675,7 +765,12 @@ export function useEasyPay() {
     videoOpacity: s.cameraFallback ? 0 : 1,
     cameraFallback: s.cameraFallback,
     qrArt: <QrArt />,
-    scanHint: s.cameraFallback ? 'Point at a UPI QR code' : 'Looking for a QR code…',
+    scanHint: s.cameraFallback
+      ? 'Point at a UPI QR code'
+      : scanError
+        ? "That's not a UPI QR code — try another"
+        : 'Looking for a QR code…',
+    scanError,
     switchToManual,
     backToScan: () => setState({ screen: 'scan', cameraFallback: false }),
 

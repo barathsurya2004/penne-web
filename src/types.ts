@@ -60,6 +60,7 @@ export interface Payee {
 
 export interface EasyPayState {
   screen: Screen;
+  isAuthenticated: boolean;
   onboardIndex: number;
   authMode: 'signup' | 'login';
   authPhone: string;
