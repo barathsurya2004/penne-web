@@ -28,6 +28,7 @@ export const initialState: EasyPayState = {
   upiValue: '',
   noteValue: '',
   amount: '',
+  isAmountFixed: false,
   payee: null,
   showConfirm: false,
   selectedBudgetId: null,

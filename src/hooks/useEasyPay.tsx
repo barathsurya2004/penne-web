@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { debugUser, initialState, onboardData } from '../data';
 import { GpayLogo, QrArt } from '../lib/icons';
 import { budgetIcon, icon, onboardArts } from '../lib/glyphs';
-import { parseUpiQr } from '../lib/upiQr';
+import { parseUpiQr, type ParsedUpiQr } from '../lib/upiQr';
 import { buildUpiPayLink, openUpiApp } from '../lib/upiPay';
 import { decodeQrFromImageFile } from '../lib/qrImage';
 import { clearPersistedApp, loadPersistedApp, savePersistedApp } from '../lib/appStorage';
@@ -181,12 +181,14 @@ export function useEasyPay() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }
 
-  function onScanned(p: { name: string; upi: string }) {
+  function onScanned(p: ParsedUpiQr) {
     stopCamera();
+    const isAmountFixed = Boolean(p.amount);
     setState({
       payee: { ...p, initials: initialsOf(p.name) },
-      amount: '',
-      noteValue: '',
+      amount: p.amount || '',
+      isAmountFixed,
+      noteValue: p.note || '',
       selectedBudgetId: null,
       screen: 'amount',
     });
@@ -224,7 +226,7 @@ export function useEasyPay() {
     scanErrorTimerRef.current = setTimeout(() => setScanError(false), 1600);
   }
 
-  function triggerScanSuccess(parsed: { name: string; upi: string }) {
+  function triggerScanSuccess(parsed: ParsedUpiQr) {
     setScanSuccess(true);
     setScanTick((t) => t + 1);
     setTimeout(() => onScanned(parsed), 450);
@@ -332,6 +334,7 @@ export function useEasyPay() {
   }, [state.screen, state.cameraFallback]);
 
   function pressKey(k: string) {
+    if (stateRef.current.isAmountFixed) return;
     setState((s) => {
       let a = s.amount;
       if (k === '⌫') a = a.slice(0, -1);
@@ -583,7 +586,7 @@ export function useEasyPay() {
       ? rawUpi.replace(/\s+/g, '') + '@upi'
       : rawUpi;
     const name = nameFromUpi(upi);
-    setState({ payee: { name, upi, initials: initialsOf(name) }, amount: '', noteValue: '', selectedBudgetId: null, screen: 'amount' });
+    setState({ payee: { name, upi, initials: initialsOf(name) }, amount: '', isAmountFixed: false, noteValue: '', selectedBudgetId: null, screen: 'amount' });
   }
 
   // ---------- derived view values (mirrors renderVals in the original prototype) ----------
@@ -992,6 +995,7 @@ export function useEasyPay() {
     payeeInitials: payee.initials || '',
     amountDisplay: s.amount === '' ? '0' : s.amount,
     amountColor: s.amount === '' ? '#C9C2B1' : '#141414',
+    isAmountFixed: s.isAmountFixed,
     noteValue: s.noteValue,
     onNoteInput: (e: ChangeEvent<HTMLInputElement>) => setState({ noteValue: e.target.value }),
     keys,
@@ -1014,7 +1018,7 @@ export function useEasyPay() {
     receiptRows,
     shareCopied,
     shareReceipt: async () => {
-      const text = `Paid ₹${s.amount || '0'} to ${payee.name || ''} (${payee.upi || ''}) via UPI · Google Pay\n${timeStr}`;
+      const text = `Paid ₹${s.amount || '0'} to ${payee.name || ''} (${payee.upi || ''}) via UPI\n${timeStr}`;
       if (navigator.share) {
         try {
           await navigator.share({ title: 'EasyPay receipt', text });
@@ -1032,7 +1036,7 @@ export function useEasyPay() {
       }
     },
     finishToHome: () => {
-      setState({ screen: 'home', amount: '', noteValue: '', payee: null, upiValue: '' });
+      setState({ screen: 'home', amount: '', isAmountFixed: false, noteValue: '', payee: null, upiValue: '' });
       pendingTxnRef.current = null;
     },
   };

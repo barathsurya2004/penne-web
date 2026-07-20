@@ -54,6 +54,9 @@ export interface Payee {
   name: string;
   upi: string;
   initials: string;
+  mc?: string;
+  tr?: string;
+  extraParams?: Record<string, string>;
 }
 
 export interface EasyPayState {
@@ -71,6 +74,7 @@ export interface EasyPayState {
   upiValue: string;
   noteValue: string;
   amount: string;
+  isAmountFixed: boolean;
   payee: Payee | null;
   showConfirm: boolean;
   selectedBudgetId: string | null;

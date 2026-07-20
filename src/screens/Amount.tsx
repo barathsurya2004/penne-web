@@ -38,6 +38,15 @@ export function Amount(V: EasyPayVals) {
             {V.amountDisplay}
           </span>
         </div>
+        {V.isAmountFixed && (
+          <div style={css('margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:#EAE4D4;color:#6B6554;font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:99px;font-family:\'Roboto\',sans-serif')}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+              <path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            Amount set by payee
+          </div>
+        )}
         <div style={css('margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap')}>
           <div style={css('display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #EBE6D9;border-radius:99px;padding:9px 14px;height:38px')}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -68,12 +77,13 @@ export function Amount(V: EasyPayVals) {
 
       <div style={css('flex:1;min-height:8px')} />
 
-      <div style={css('display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:14px')}>
+      <div style={css(`display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:14px;opacity:${V.isAmountFixed ? 0.35 : 1};pointer-events:${V.isAmountFixed ? 'none' : 'auto'}`)}>
         {V.keys.map((k, i) => (
           <button
             key={i}
             onClick={k.onClick}
-            style={css("border:none;background:none;height:52px;font-family:'IBM Plex Sans',sans-serif;font-size:23px;font-weight:500;color:#141414;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:14px")}
+            disabled={V.isAmountFixed}
+            style={css(`border:none;background:none;height:52px;font-family:'IBM Plex Sans',sans-serif;font-size:23px;font-weight:500;color:#141414;cursor:${V.isAmountFixed ? 'not-allowed' : 'pointer'};display:flex;align-items:center;justify-content:center;border-radius:14px`)}
           >
             {k.label}
           </button>
@@ -90,9 +100,8 @@ export function Amount(V: EasyPayVals) {
         <div ref={V.fillRef} style={css('position:absolute;inset:0;width:62px;background:linear-gradient(90deg,#1a1a1a,#333);border-radius:18px')} />
         <div style={css('position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.9);pointer-events:none;padding-left:34px')}>
           <span style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px")}>Slide to pay via</span>
-          <span style={css('display:inline-flex;align-items:center;gap:5px;background:#fff;border-radius:99px;padding:4px 10px 4px 6px')}>
-            {V.gpayLogo}
-            <span style={css("font-size:12.5px;font-weight:600;color:#3c4043;font-family:'Roboto',sans-serif")}>Pay</span>
+          <span style={css('display:inline-flex;align-items:center;gap:5px;background:#fff;border-radius:99px;padding:4px 12px')}>
+            <span style={css("font-size:12.5px;font-weight:700;color:#141414;font-family:'IBM Plex Sans',sans-serif;letter-spacing:.3px")}>UPI</span>
           </span>
         </div>
         <div
