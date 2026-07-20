@@ -575,7 +575,13 @@ export function useEasyPay() {
     setState({ upiValue: '', screen: 'upi' });
     setTimeout(() => upiInputRef.current && upiInputRef.current.focus(), 60);
   }
-  function onScannedManual(upi: string) {
+  function onScannedManual(rawUpi: string) {
+    // Bare phone numbers (e.g. "9876543210") are not valid UPI VPAs on their own.
+    // UPI apps require pa= to be a full VPA; append @upi (NPCI's generic handle) so
+    // the deep link is accepted. Real @-address entries are passed through unchanged.
+    const upi = /^\d/.test(rawUpi.trim()) && !rawUpi.includes('@')
+      ? rawUpi.replace(/\s+/g, '') + '@upi'
+      : rawUpi;
     const name = nameFromUpi(upi);
     setState({ payee: { name, upi, initials: initialsOf(name) }, amount: '', noteValue: '', selectedBudgetId: null, screen: 'amount' });
   }
@@ -587,7 +593,7 @@ export function useEasyPay() {
   const insufficientBalance = amt > 0 && amt > s.balance;
   const payee = s.payee || ({} as Partial<Payee>);
   const upiClean = s.upiValue.trim();
-  const upiValid = /@/.test(upiClean) ? /^[\w.-]+@[\w.-]+$/.test(upiClean) : /^\d[\d\s]{8,}$/.test(upiClean);
+  const upiValid = /@/.test(upiClean) ? /^[\w.+-]+@[\w.-]+$/.test(upiClean) : /^\d[\d\s]{8,}$/.test(upiClean);
   const now = new Date();
   const timeStr = now.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
   const txnId = 'EPX' + String(now.getTime()).slice(-9);
