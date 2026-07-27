@@ -33,7 +33,7 @@ export function openUpiApp(link: string, appId?: 'upi' | 'gpay' | 'phonepe' | 'p
   let finalLink = link;
 
   if (!/[?&]mc=/i.test(finalLink)) {
-    finalLink = finalLink.replace(/([?&])am=[^&]*/i, (match, p1) => p1 === '?' ? '?' : '');
+    finalLink = finalLink.replace(/([?&])am=[^&]*/i, (_, p1) => p1 === '?' ? '?' : '');
     finalLink = finalLink.replace(/\?&/, '?').replace(/&&/g, '&').replace(/[?&]$/, '');
   }
 
