@@ -29,9 +29,24 @@ export function buildUpiPayLink(
 }
 
 /** Triggers OS intent/app chooser for standard P2P UPI handoff. */
-export function openUpiApp(link: string) {
+export function openUpiApp(link: string, appId?: 'upi' | 'gpay' | 'phonepe' | 'paytm') {
+  let finalLink = link;
+
+  if (!/[?&]mc=/i.test(finalLink)) {
+    finalLink = finalLink.replace(/([?&])am=[^&]*/i, (match, p1) => p1 === '?' ? '?' : '');
+    finalLink = finalLink.replace(/\?&/, '?').replace(/&&/g, '&').replace(/[?&]$/, '');
+  }
+
+  if (appId === 'phonepe') {
+    finalLink = finalLink.replace(/^upi:\/\/pay/i, 'phonepe://pay');
+  } else if (appId === 'paytm') {
+    finalLink = finalLink.replace(/^upi:\/\/pay/i, 'paytmmp://pay');
+  } else {
+    finalLink = finalLink.replace(/^upi:\/\/pay/i, 'gpay://upi/pay');
+  }
+
   try {
-    window.location.href = link;
+    window.location.href = finalLink;
   } catch {
     // unsupported scheme / blocked navigation — in-app confirm flow handles fallback
   }

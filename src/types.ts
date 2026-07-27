@@ -152,4 +152,6 @@ export interface EasyPayState {
   newSubCadenceType: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
   newSubCadenceInterval: string;
   newSubCadenceUnit: 'day' | 'week' | 'month' | 'year';
+  defaultPaymentApp: 'upi' | 'gpay' | 'phonepe' | 'paytm';
+  showAppPicker: boolean;
 }

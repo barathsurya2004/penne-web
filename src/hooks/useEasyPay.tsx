@@ -409,9 +409,9 @@ export function useEasyPay() {
       showTransferPicker: false 
     }));
     if (txn.raw === 0 && p.rawStr) {
-      openUpiApp(p.rawStr);
+      openUpiApp(p.rawStr, stateRef.current.defaultPaymentApp);
     } else {
-      openUpiApp(buildUpiPayLink(p, txn.raw, stateRef.current.noteValue));
+      openUpiApp(buildUpiPayLink(p, txn.raw, stateRef.current.noteValue), stateRef.current.defaultPaymentApp);
     }
   }
 
@@ -772,8 +772,12 @@ export function useEasyPay() {
     },
     {
       label: 'Default payment app',
-      sub: 'Google Pay · change anytime',
+      sub: s.defaultPaymentApp === 'upi' ? 'Ask every time' :
+           s.defaultPaymentApp === 'gpay' ? 'Google Pay' :
+           s.defaultPaymentApp === 'phonepe' ? 'PhonePe' :
+           'Paytm',
       icon: icon(['M4 7h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z', 'M3 11h18'], 18, '#141414'),
+      onClick: () => setState({ showAppPicker: true }),
     },
     {
       label: 'Security & app lock',
@@ -1112,6 +1116,12 @@ export function useEasyPay() {
 
     // my QR (receive money)
     myQrVpa: (s.user.phone ? s.user.phone.replace(/\s+/g, '') : 'user') + '@easypay',
+
+    // app picker
+    showAppPicker: s.showAppPicker,
+    defaultPaymentApp: s.defaultPaymentApp,
+    setDefaultPaymentApp: (app: 'upi' | 'gpay' | 'phonepe' | 'paytm') => setState({ defaultPaymentApp: app, showAppPicker: false }),
+    closeAppPicker: () => setState({ showAppPicker: false }),
 
     // upi entry
     upiValue: s.upiValue,

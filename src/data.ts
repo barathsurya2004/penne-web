@@ -85,4 +85,6 @@ export const initialState: EasyPayState = {
   newSubCadenceType: 'monthly',
   newSubCadenceInterval: '1',
   newSubCadenceUnit: 'month',
+  defaultPaymentApp: 'upi',
+  showAppPicker: false,
 };

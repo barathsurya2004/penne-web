@@ -25,6 +25,7 @@ import { OverBudgetSheet } from './components/OverBudgetSheet';
 import { OverFrozenSheet } from './components/OverFrozenSheet';
 import { TransferPickerSheet } from './components/TransferPickerSheet';
 import { CreateSubscriptionSheet } from './components/CreateSubscriptionSheet';
+import { AppPickerSheet } from './components/AppPickerSheet';
 
 function App() {
   const V = useEasyPay();
@@ -55,6 +56,7 @@ function App() {
       <OverFrozenSheet {...V} />
       <TransferPickerSheet {...V} />
       <CreateSubscriptionSheet {...V} />
+      <AppPickerSheet {...V} />
       <Confirm {...V} />
       <TabBar {...V} />
     </div>
