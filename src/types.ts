@@ -10,6 +10,8 @@ export type Screen =
   | 'receipt'
   | 'history'
   | 'budgets'
+  | 'wishlist'
+  | 'insights'
   | 'profile';
 
 export type BudgetIconKey =
@@ -41,6 +43,45 @@ export interface Budget {
   name: string;
   allocated: number;
   icon: BudgetIconKey;
+  frozen?: boolean;
+}
+
+export interface WishlistItem {
+  id: string;
+  name: string;
+  targetAmt: number;
+  currentAmt: number;
+  priority: 'P1' | 'P2' | 'P3';
+  deadline: string;
+  image: string;
+}
+
+export type CadenceUnit = 'day' | 'week' | 'month' | 'year';
+
+export interface SubscriptionCadence {
+  type: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
+  interval?: number;
+  unit?: CadenceUnit;
+}
+
+export interface Subscription {
+  id: string;
+  name: string;
+  icon: string;
+  amount: number;
+  cadence: SubscriptionCadence;
+  annualCost: number;
+  lastUsed: string;
+  cancelSuggested?: boolean;
+}
+
+export interface Merchant {
+  id: string;
+  name: string;
+  visits: number;
+  monthlyTotal: number;
+  averageBill: number;
+  trend: 'up' | 'down' | 'stable';
 }
 
 export interface User {
@@ -57,6 +98,7 @@ export interface Payee {
   mc?: string;
   tr?: string;
   extraParams?: Record<string, string>;
+  rawStr?: string;
 }
 
 export interface EasyPayState {
@@ -94,4 +136,20 @@ export interface EasyPayState {
   editBank: string;
   editingBudgetId: string | null;
   showMyQr: boolean;
+  showOverBudget: boolean;
+  showOverFrozen: boolean;
+  overBudgetId: string | null;
+  overFrozenId: string | null;
+  obDeficit: number;
+  showTransferPicker: boolean;
+  wishlist: WishlistItem[];
+  subscriptions: Subscription[];
+  merchants: Merchant[];
+  showCreateSubscription: boolean;
+  newSubName: string;
+  newSubIcon: string;
+  newSubAmount: string;
+  newSubCadenceType: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
+  newSubCadenceInterval: string;
+  newSubCadenceUnit: 'day' | 'week' | 'month' | 'year';
 }

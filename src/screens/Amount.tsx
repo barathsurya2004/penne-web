@@ -73,6 +73,11 @@ export function Amount(V: EasyPayVals) {
         {V.insufficientBalance && (
           <div style={css('margin-top:14px;font-size:12px;color:#C0455B;font-weight:500')}>Insufficient balance — max ₹{V.balanceFmt}</div>
         )}
+        {V.showPaceWarning && !V.insufficientBalance && (
+          <div style={css('margin-top:14px;font-size:12px;color:#C0455B;font-weight:500;text-align:center;line-height:1.4')}>
+            {V.paceWarningMsg.split('. ').map((s, i) => <div key={i}>{s}{i === 0 ? '.' : ''}</div>)}
+          </div>
+        )}
       </div>
 
       <div style={css('flex:1;min-height:8px')} />

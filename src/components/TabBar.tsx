@@ -36,6 +36,18 @@ export function TabBar(V: EasyPayVals) {
         </svg>
         Budgets
       </button>
+      <button onClick={V.goWishlist} style={css(`border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;color:${V.navWishC};font-size:10px;font-weight:500;cursor:pointer`)}>
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke={V.navWishC} strokeWidth="1.9" strokeLinejoin="round" />
+        </svg>
+        Wishlist
+      </button>
+      <button onClick={V.goInsights} style={css(`border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;color:${V.navInsiC};font-size:10px;font-weight:500;cursor:pointer`)}>
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+          <path d="M21 21H3M4 18v-8m4 8V7m4 11V4m4 14v-6m4 6v-9" stroke={V.navInsiC} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Insights
+      </button>
       <button onClick={V.goProfile} style={css(`border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;color:${V.navProfC};font-size:10px;font-weight:500;cursor:pointer`)}>
         <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="8" r="4" stroke={V.navProfC} strokeWidth="1.9" />

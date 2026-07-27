@@ -12,6 +12,8 @@ import { Confirm } from './screens/Confirm';
 import { Receipt } from './screens/Receipt';
 import { History } from './screens/History';
 import { Budgets } from './screens/Budgets';
+import { Wishlist } from './screens/Wishlist';
+import { Insights } from './screens/Insights';
 import { Profile } from './screens/Profile';
 import { TabBar } from './components/TabBar';
 import { BudgetPicker } from './components/BudgetPicker';
@@ -19,6 +21,10 @@ import { AddBalanceSheet } from './components/AddBalanceSheet';
 import { CreateBudgetSheet } from './components/CreateBudgetSheet';
 import { EditProfileSheet } from './components/EditProfileSheet';
 import { MyQrSheet } from './components/MyQrSheet';
+import { OverBudgetSheet } from './components/OverBudgetSheet';
+import { OverFrozenSheet } from './components/OverFrozenSheet';
+import { TransferPickerSheet } from './components/TransferPickerSheet';
+import { CreateSubscriptionSheet } from './components/CreateSubscriptionSheet';
 
 function App() {
   const V = useEasyPay();
@@ -36,6 +42,8 @@ function App() {
       {V.screenReceipt && <Receipt {...V} />}
       {V.screenHistory && <History {...V} />}
       {V.screenBudgets && <Budgets {...V} />}
+      {V.screenWishlist && <Wishlist {...V} />}
+      {V.screenInsights && <Insights {...V} />}
       {V.screenProfile && <Profile {...V} />}
 
       <BudgetPicker {...V} />
@@ -43,6 +51,10 @@ function App() {
       <CreateBudgetSheet {...V} />
       <EditProfileSheet {...V} />
       <MyQrSheet {...V} />
+      <OverBudgetSheet {...V} />
+      <OverFrozenSheet {...V} />
+      <TransferPickerSheet {...V} />
+      <CreateSubscriptionSheet {...V} />
       <Confirm {...V} />
       <TabBar {...V} />
     </div>

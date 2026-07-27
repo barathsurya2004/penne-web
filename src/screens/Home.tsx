@@ -20,9 +20,9 @@ export function Home(V: EasyPayVals) {
       <div style={css('margin:18px 18px 0;background:#141414;border-radius:26px;padding:22px 22px 18px;color:#fff;position:relative;overflow:hidden')}>
         <div style={css('position:absolute;right:-30px;top:-30px;width:150px;height:150px;border:1px solid rgba(255,255,255,.09);border-radius:50%')} />
         <div style={css('position:absolute;right:6px;top:6px;width:100px;height:100px;border:1px solid rgba(255,255,255,.07);border-radius:50%')} />
-        <div style={css('font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.3px')}>Available balance</div>
+        <div style={css('font-size:12px;color:rgba(255,255,255,.55);letter-spacing:.3px')}>Unallocated Funds</div>
         <div style={css('display:flex;align-items:flex-end;gap:8px;margin-top:6px')}>
-          <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:36px;letter-spacing:-1px")}>₹{V.balanceFmt}</div>
+          <div style={css("font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:36px;letter-spacing:-1px")}>₹{V.unallocatedFmt}</div>
           <div style={css('font-size:12px;color:#7FC19B;margin-bottom:9px;font-weight:500')}>+2.4%</div>
         </div>
         <div style={css('display:flex;gap:10px;margin-top:18px')}>

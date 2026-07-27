@@ -34,9 +34,12 @@ export interface BudgetRow {
   allocated: string;
   remaining: string;
   remainColor: string;
+  remNum: number;
   pctW: string;
   barColor: string;
   onClick: () => void;
+  paceAlert?: string;
+  frozen?: boolean;
 }
 
 export interface PickerOption {
@@ -189,7 +192,7 @@ export function useEasyPay() {
       amount: p.amount || '',
       isAmountFixed,
       noteValue: p.note || '',
-      selectedBudgetId: null,
+      selectedBudgetId: stateRef.current.budgets.length > 0 ? stateRef.current.budgets[0].id : null,
       screen: 'amount',
     });
   }
@@ -375,7 +378,7 @@ export function useEasyPay() {
 
   function onSlideDown(e: ReactPointerEvent<HTMLDivElement>) {
     const amt = currentAmount();
-    if (amt <= 0 || amt > stateRef.current.balance) {
+    if (amt < 0 || amt > stateRef.current.balance) {
       setSlideBlockedTick((t) => t + 1);
       return;
     }
@@ -395,15 +398,46 @@ export function useEasyPay() {
     return Math.round(parseFloat(stateRef.current.amount || '0') * 100) / 100;
   }
 
+  function commitTxn(txn: Txn) {
+    const p = stateRef.current.payee as Payee;
+    setState((s) => ({ 
+      txns: [txn, ...s.txns], 
+      balance: s.balance - txn.raw, 
+      screen: 'receipt', 
+      showConfirm: true, 
+      showOverBudget: false, 
+      showTransferPicker: false 
+    }));
+    if (txn.raw === 0 && p.rawStr) {
+      openUpiApp(p.rawStr);
+    } else {
+      openUpiApp(buildUpiPayLink(p, txn.raw, stateRef.current.noteValue));
+    }
+  }
+
   function completeSlide() {
     if (!dragRef.current) return;
     window.removeEventListener('pointermove', onSlideMove);
     window.removeEventListener('pointerup', onSlideUp);
     dragRef.current = null;
     const amt = currentAmount();
+    const selBudgetId = stateRef.current.selectedBudgetId;
+    const selBudgetSpent = selBudgetId ? spentOf(selBudgetId) : 0;
+    const budgetObj = stateRef.current.budgets.find(b => b.id === selBudgetId);
+    const selBudgetAlloc = budgetObj?.allocated || 0;
+    const selBudgetRem = Math.max(0, selBudgetAlloc - selBudgetSpent);
+
+    function resetSlider() {
+      if (knobRef.current && fillRef.current) {
+        knobRef.current.style.transition = 'transform .25s';
+        fillRef.current.style.transition = 'width .25s';
+        knobRef.current.style.transform = 'translateX(0)';
+        fillRef.current.style.width = '62px';
+      }
+    }
+
     const p = stateRef.current.payee as Payee;
     const txn: Txn = {
-      // eslint-disable-next-line react-hooks/purity -- runs from a pointer gesture (window listener), not during render
       id: 'p' + Date.now(),
       name: p.name,
       sub: stateRef.current.noteValue || 'UPI payment',
@@ -414,13 +448,53 @@ export function useEasyPay() {
       upi: p.upi,
       initials: p.initials,
       raw: amt,
-      budgetId: stateRef.current.selectedBudgetId,
+      budgetId: selBudgetId,
     };
     pendingTxnRef.current = txn;
-    // note the transaction immediately and jump straight to the receipt, with the
-    // confirm sheet overlaid on top asking to verify the external app actually went through
-    setState((s) => ({ txns: [txn, ...s.txns], balance: s.balance - amt, screen: 'receipt', showConfirm: true }));
-    openUpiApp(buildUpiPayLink(p, amt, stateRef.current.noteValue));
+    
+    if (budgetObj?.frozen) {
+      setState({ showOverFrozen: true, overFrozenId: selBudgetId });
+      resetSlider();
+      return;
+    }
+    
+    if (amt > selBudgetRem) {
+      setState({ showOverBudget: true, obDeficit: amt - selBudgetRem, overBudgetId: selBudgetId });
+      resetSlider();
+      return;
+    }
+    commitTxn(txn);
+  }
+
+  function obCancel() {
+    setState({ showOverBudget: false, showTransferPicker: false });
+    pendingTxnRef.current = null;
+  }
+
+  function obOverride() {
+    if (pendingTxnRef.current) {
+      commitTxn(pendingTxnRef.current);
+    }
+  }
+
+  function obStartTransfer() {
+    setState({ showTransferPicker: true });
+  }
+
+  function obTransferFrom(sourceBudgetId: string) {
+    if (!pendingTxnRef.current) return;
+    const deficit = stateRef.current.obDeficit;
+    const targetId = pendingTxnRef.current.budgetId;
+    
+    setState(s => ({
+      budgets: s.budgets.map(b => {
+        if (b.id === sourceBudgetId) return { ...b, allocated: b.allocated - deficit };
+        if (b.id === targetId) return { ...b, allocated: b.allocated + deficit };
+        return b;
+      })
+    }));
+    
+    commitTxn(pendingTxnRef.current);
   }
 
   function confirmYes() {
@@ -566,9 +640,6 @@ export function useEasyPay() {
     setStateRaw({ ...initialState, screen: 'onboard' });
   }
 
-  function goHome() {
-    go('home');
-  }
   function openScan() {
     resetScanFeedback();
     setState({ screen: 'scan', cameraFallback: false });
@@ -586,7 +657,7 @@ export function useEasyPay() {
       ? rawUpi.replace(/\s+/g, '') + '@upi'
       : rawUpi;
     const name = nameFromUpi(upi);
-    setState({ payee: { name, upi, initials: initialsOf(name) }, amount: '', isAmountFixed: false, noteValue: '', selectedBudgetId: null, screen: 'amount' });
+    setState({ payee: { name, upi, initials: initialsOf(name) }, amount: '', isAmountFixed: false, noteValue: '', selectedBudgetId: stateRef.current.budgets.length > 0 ? stateRef.current.budgets[0].id : null, screen: 'amount' });
   }
 
   // ---------- derived view values (mirrors renderVals in the original prototype) ----------
@@ -600,6 +671,11 @@ export function useEasyPay() {
   const now = new Date();
   const timeStr = now.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
   const txnId = 'EPX' + String(now.getTime()).slice(-9);
+
+  const currentDay = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const expectedPct = Math.round((currentDay / daysInMonth) * 100);
+  const remainingDays = Math.max(1, daysInMonth - currentDay + 1);
 
   const budgetName = (bid: string | null) => {
     const b = s.budgets.find((x) => x.id === bid);
@@ -635,6 +711,7 @@ export function useEasyPay() {
     const spent = spentOf(b.id);
     const pct = b.allocated ? Math.min(100, Math.round((spent / b.allocated) * 100)) : 0;
     const over = spent > b.allocated;
+    const paceAlert = (!over && b.allocated > 0 && pct > expectedPct) ? 'You are spending faster than planned.' : undefined;
     return {
       id: b.id,
       name: b.name,
@@ -643,22 +720,20 @@ export function useEasyPay() {
       allocated: '₹' + fmt(b.allocated),
       remaining: over ? '₹' + fmt(spent - b.allocated) + ' over' : '₹' + fmt(b.allocated - spent) + ' left',
       remainColor: over ? '#C0455B' : '#7A755F',
+      remNum: over ? 0 : (b.allocated - spent),
       pctW: pct + '%',
       barColor: over ? '#C0455B' : '#141414',
       onClick: () => pickBudget(b.id),
+      paceAlert,
+      frozen: !!b.frozen,
     };
   });
+  
+  const totalWishlistSaved = s.wishlist.reduce((sum, w) => sum + w.currentAmt, 0);
+  const unallocated = Math.max(0, s.balance - (totalAllocated - totalSpent) - totalWishlistSaved);
+  const unallocatedFmt = fmt(unallocated);
 
   const pickerOptions: PickerOption[] = [
-    {
-      id: null,
-      name: 'Unallocated pool',
-      sub: 'Not tracked against a budget',
-      icon: icon(['M12 3a9 9 0 100 18 9 9 0 000-18z', 'M12 8v4l3 2'], 20, '#8A8577'),
-      selected: s.selectedBudgetId === null,
-      selBorder: s.selectedBudgetId === null ? '#141414' : '#EBE6D9',
-      onClick: () => pickBudget(null),
-    },
     ...s.budgets.map((b) => {
       const spent = spentOf(b.id);
       return {
@@ -674,6 +749,13 @@ export function useEasyPay() {
   ];
   const selBudget = s.budgets.find((b) => b.id === s.selectedBudgetId);
   const selBudgetLabel = selBudget ? selBudget.name : 'Unallocated';
+  
+  const selBudgetSpent = selBudget ? spentOf(selBudget.id) : 0;
+  const selBudgetRemaining = selBudget ? Math.max(0, selBudget.allocated - selBudgetSpent) : 0;
+  const safeDailySpend = Math.floor(selBudgetRemaining / remainingDays);
+  const daysConsumed = safeDailySpend > 0 ? Math.ceil(amt / safeDailySpend) : 0;
+  const showPaceWarning = amt > 0 && safeDailySpend > 0 && amt > safeDailySpend;
+  const paceWarningMsg = showPaceWarning ? `You have ₹${fmt(safeDailySpend)}/day available. This purchase consumes ${fmt(daysConsumed)} days of pacing.` : '';
 
   const profileRows: ProfileRow[] = [
     {
@@ -772,6 +854,9 @@ export function useEasyPay() {
     knobRef,
     fillRef,
     stopProp: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+    
+    showPaceWarning,
+    paceWarningMsg,
 
     // screen flags
     screenOnboard: s.screen === 'onboard',
@@ -785,18 +870,25 @@ export function useEasyPay() {
     screenReceipt: s.screen === 'receipt',
     screenHistory: s.screen === 'history',
     screenBudgets: s.screen === 'budgets',
+    screenWishlist: s.screen === 'wishlist',
+    screenInsights: s.screen === 'insights',
     screenProfile: s.screen === 'profile',
 
     // tab bar
-    showTabBar: ['home', 'history', 'budgets', 'profile'].includes(s.screen),
+    unallocatedFmt,
+    showTabBar: ['home', 'history', 'budgets', 'wishlist', 'insights', 'profile'].includes(s.screen),
     navHomeC: s.screen === 'home' ? '#141414' : '#B4AE9E',
     navHistC: s.screen === 'history' ? '#141414' : '#B4AE9E',
     navBudgC: s.screen === 'budgets' ? '#141414' : '#B4AE9E',
+    navWishC: s.screen === 'wishlist' ? '#141414' : '#B4AE9E',
+    navInsiC: s.screen === 'insights' ? '#141414' : '#B4AE9E',
     navProfC: s.screen === 'profile' ? '#141414' : '#B4AE9E',
     goHistory: () => go('history'),
     goBudgets: () => go('budgets'),
+    goWishlist: () => go('wishlist'),
+    goInsights: () => go('insights'),
     goProfile: () => go('profile'),
-    goHome,
+    goHome: () => go('home'),
     goAuth,
 
     // history
@@ -810,6 +902,7 @@ export function useEasyPay() {
 
     // budgets
     budgetsList,
+    isNearMonthEnd: remainingDays <= 5,
     totalAllocatedFmt: '₹' + fmt(totalAllocated),
     totalSpentFmt: '₹' + fmt(totalSpent),
     totalLeftFmt: '₹' + fmt(Math.max(0, totalAllocated - totalSpent)),
@@ -968,11 +1061,56 @@ export function useEasyPay() {
     triggerGalleryUpload,
     onGalleryFile,
 
-    // my QR (receive money)
+    // my qr
     showMyQr: s.showMyQr,
+    myQrDataUrl,
     openMyQr,
     closeMyQr,
-    myQrDataUrl,
+
+    // over budget protection
+    showOverBudget: s.showOverBudget,
+    obDeficit: s.obDeficit,
+    obDeficitFmt: '₹' + fmt(s.obDeficit),
+    showTransferPicker: s.showTransferPicker,
+    obCancel,
+    obOverride,
+    obStartTransfer,
+    obTransferFrom,
+
+    // freeze
+    showOverFrozen: s.showOverFrozen,
+    overFrozenId: s.overFrozenId,
+    closeOverFrozen: () => setState({ showOverFrozen: false }),
+    overrideOverFrozen: () => {
+      if (!pendingTxnRef.current) return;
+      const amt = pendingTxnRef.current.raw;
+      const budgetId = pendingTxnRef.current.budgetId;
+      const spent = budgetId ? spentOf(budgetId) : 0;
+      const budget = s.budgets.find(b => b.id === budgetId);
+      const alloc = budget?.allocated || 0;
+      const rem = Math.max(0, alloc - spent);
+
+      if (amt > rem && budgetId) {
+        setState({
+          showOverFrozen: false,
+          showOverBudget: true,
+          overBudgetId: budgetId,
+          obDeficit: amt - rem,
+        });
+        return;
+      }
+
+      commitTxn(pendingTxnRef.current);
+      setState({ showOverFrozen: false, overFrozenId: null });
+    },
+    toggleFreezeBudget: (id: string) => {
+      setState(s => {
+        const newBudgets = s.budgets.map(b => b.id === id ? { ...b, frozen: !b.frozen } : b);
+        return { budgets: newBudgets };
+      });
+    },
+
+    // my QR (receive money)
     myQrVpa: (s.user.phone ? s.user.phone.replace(/\s+/g, '') : 'user') + '@easypay',
 
     // upi entry
@@ -1038,6 +1176,102 @@ export function useEasyPay() {
     finishToHome: () => {
       setState({ screen: 'home', amount: '', isAmountFixed: false, noteValue: '', payee: null, upiValue: '' });
       pendingTxnRef.current = null;
+    },
+
+    // intelligence & features
+    wishlist: s.wishlist,
+    subscriptions: s.subscriptions,
+    merchants: s.merchants,
+    waterfallToWishlist: () => {
+      setState(s => {
+        let unalloc = Math.max(0, s.balance - (s.budgets.reduce((a,b)=>a+b.allocated,0) - s.budgets.reduce((a,b)=>a+spentOf(b.id),0)) - s.wishlist.reduce((sum, item)=>sum+item.currentAmt,0));
+        if (unalloc <= 0) return {};
+        
+        const newWishlist = s.wishlist.map(w => ({ ...w }));
+        for (const p of ['P1', 'P2', 'P3']) {
+          for (const item of newWishlist.filter(w => w.priority === p)) {
+            const shortage = item.targetAmt - item.currentAmt;
+            if (shortage > 0) {
+              const fill = Math.min(unalloc, shortage);
+              item.currentAmt += fill;
+              unalloc -= fill;
+            }
+          }
+        }
+        return { wishlist: newWishlist };
+      });
+    },
+    moveLeftoverToWishlist: (budgetId: string, wishlistId: string) => {
+      setState(s => {
+        const b = s.budgets.find(x => x.id === budgetId);
+        if (!b) return {};
+        const spent = spentOf(budgetId);
+        const rem = b.allocated - spent;
+        if (rem <= 0) return {};
+        
+        const newWishlist = s.wishlist.map(w => w.id === wishlistId ? { ...w, currentAmt: w.currentAmt + rem } : w);
+        const newBudgets = s.budgets.map(x => x.id === budgetId ? { ...x, allocated: spent } : x);
+        return { wishlist: newWishlist, budgets: newBudgets };
+      });
+    },
+
+    // create subscription
+    showCreateSubscription: s.showCreateSubscription,
+    newSubName: s.newSubName,
+    newSubIcon: s.newSubIcon,
+    newSubAmount: s.newSubAmount,
+    newSubCadenceType: s.newSubCadenceType,
+    newSubCadenceInterval: s.newSubCadenceInterval,
+    newSubCadenceUnit: s.newSubCadenceUnit,
+    onNewSubName: (e: React.ChangeEvent<HTMLInputElement>) => setState({ newSubName: e.target.value }),
+    onNewSubIcon: (e: React.ChangeEvent<HTMLInputElement>) => setState({ newSubIcon: e.target.value }),
+    onNewSubAmount: (e: React.ChangeEvent<HTMLInputElement>) => setState({ newSubAmount: e.target.value.replace(/[^0-9]/g, '') }),
+    onNewSubCadenceType: (e: React.ChangeEvent<HTMLSelectElement>) => setState({ newSubCadenceType: e.target.value as any }),
+    onNewSubCadenceInterval: (e: React.ChangeEvent<HTMLInputElement>) => setState({ newSubCadenceInterval: e.target.value.replace(/[^0-9]/g, '') }),
+    onNewSubCadenceUnit: (e: React.ChangeEvent<HTMLSelectElement>) => setState({ newSubCadenceUnit: e.target.value as any }),
+    openCreateSubscription: () => setState({ showCreateSubscription: true, newSubName: '', newSubIcon: '💳', newSubAmount: '', newSubCadenceType: 'monthly', newSubCadenceInterval: '1', newSubCadenceUnit: 'month' }),
+    closeCreateSubscription: () => setState({ showCreateSubscription: false }),
+    createSubscriptionDisabled: !s.newSubName.trim() || !s.newSubAmount || (s.newSubCadenceType === 'custom' && (!s.newSubCadenceInterval || parseInt(s.newSubCadenceInterval) < 1)),
+    createSubscriptionBtnBg: (s.newSubName.trim() && s.newSubAmount && (s.newSubCadenceType !== 'custom' || (s.newSubCadenceInterval && parseInt(s.newSubCadenceInterval) >= 1))) ? '#141414' : '#DED8C8',
+    createSubscriptionBtnFg: (s.newSubName.trim() && s.newSubAmount && (s.newSubCadenceType !== 'custom' || (s.newSubCadenceInterval && parseInt(s.newSubCadenceInterval) >= 1))) ? '#fff' : '#A69F8C',
+    createSubscription: () => {
+      setState(s => {
+        const amt = parseInt(s.newSubAmount) || 0;
+        
+        // calculate annual cost
+        let m = 12; // multiplier
+        if (s.newSubCadenceType === 'daily') m = 365;
+        else if (s.newSubCadenceType === 'weekly') m = 52;
+        else if (s.newSubCadenceType === 'biweekly') m = 26;
+        else if (s.newSubCadenceType === 'monthly') m = 12;
+        else if (s.newSubCadenceType === 'yearly') m = 1;
+        else if (s.newSubCadenceType === 'custom') {
+          const interval = parseInt(s.newSubCadenceInterval) || 1;
+          if (s.newSubCadenceUnit === 'day') m = 365 / interval;
+          else if (s.newSubCadenceUnit === 'week') m = 52 / interval;
+          else if (s.newSubCadenceUnit === 'month') m = 12 / interval;
+          else if (s.newSubCadenceUnit === 'year') m = 1 / interval;
+        }
+        
+        const newSub = {
+          id: 's' + Date.now(),
+          name: s.newSubName.trim(),
+          icon: s.newSubIcon.trim() || '💳',
+          amount: amt,
+          cadence: {
+            type: s.newSubCadenceType,
+            interval: parseInt(s.newSubCadenceInterval) || 1,
+            unit: s.newSubCadenceUnit
+          },
+          annualCost: Math.round(amt * m),
+          lastUsed: 'Just now',
+          cancelSuggested: false,
+        };
+        return {
+          subscriptions: [...s.subscriptions, newSub],
+          showCreateSubscription: false,
+        };
+      });
     },
   };
 }

@@ -6,6 +6,7 @@ export interface ParsedUpiQr {
   mc?: string;
   tr?: string;
   extraParams?: Record<string, string>;
+  rawStr?: string;
 }
 
 /** Parses a scanned QR payload as a UPI payment link (the format GPay, PhonePe, Paytm etc. all emit),
@@ -48,5 +49,6 @@ export function parseUpiQr(raw: string): ParsedUpiQr | null {
     mc: mc || undefined,
     tr: tr || undefined,
     extraParams: Object.keys(extraParams).length > 0 ? extraParams : undefined,
+    rawStr: raw,
   };
 }
